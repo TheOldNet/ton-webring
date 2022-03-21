@@ -11,22 +11,22 @@ type CacheData = {
 
 let cache: Record<string, CacheData> = {};
 
-export function updateCacheForSite(website: Website) {
+export async function updateCacheForSite(website: Website) {
   let cachedSite = cache[website.id];
   if (!!cachedSite && cachedSite.time.diffNow().as("hours") > 1) {
     return;
   }
 
-  const random = getRandomWebsite(website.id);
+  const random = await getRandomWebsite(website.id);
   cachedSite = cache[website.id] = {
     time: DateTime.local(),
     targetWebsiteId: random.id,
   };
 }
 
-export function getCachedWidgetData(website: Website) {
+export async function getCachedWidgetData(website: Website) {
   if (!cache[website.id]) {
-    updateCacheForSite(website);
+    await updateCacheForSite(website);
   }
 
   return cache[website.id];

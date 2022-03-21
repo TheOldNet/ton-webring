@@ -11,6 +11,7 @@ import {
   getRandomSiteList,
   getRandomWebsite,
   getWebsite,
+  connect,
 } from "./db";
 import { isOldBrowser } from "./old-browser";
 import { WidgetCreationRequest } from "./types";
@@ -18,7 +19,9 @@ import { generateWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
 
 const app = express();
-const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 8007;
+
+connect();
 
 app.use(bodyParser.urlencoded());
 app.set("view engine", "vash");
@@ -31,21 +34,21 @@ app.use("/assets", express.static("assets"));
  * Member routes
  */
 
-app.get("/member/:website/next/navigate", (req, res) => {
+app.get("/member/:website/next/navigate", async (req, res) => {
   const website = req.params.website;
-  const result = getNextWebsite(website);
+  const result = await getNextWebsite(website);
   res.redirect(result.url);
 });
 
-app.get("/member/:website/previous/navigate", (req, res) => {
+app.get("/member/:website/previous/navigate", async (req, res) => {
   const website = req.params.website;
-  const result = getPreviousWebsite(website);
+  const result = await getPreviousWebsite(website);
   res.redirect(result.url);
 });
 
-app.get("/member/:website/random/navigate", (req, res) => {
+app.get("/member/:website/random/navigate", async (req, res) => {
   const website = req.params.website;
-  const random = getRandomWebsite(website);
+  const random = await getRandomWebsite(website);
   res.redirect(random.url);
 });
 
@@ -53,21 +56,21 @@ app.get("/member/:website/random/navigate", (req, res) => {
  * Member JSON endpoints
  */
 
-app.get("/member/:website/next", (req, res) => {
+app.get("/api/member/:website/next", async (req, res) => {
   const website = req.params.website;
-  const result = getNextWebsite(website);
+  const result = await getNextWebsite(website);
   res.send(result);
 });
 
-app.get("/member/:website/previous", (req, res) => {
+app.get("/api/member/:website/previous", async (req, res) => {
   const website = req.params.website;
-  const result = getPreviousWebsite(website);
+  const result = await getPreviousWebsite(website);
   res.send(result);
 });
 
-app.get("/member/:website/random", (req, res) => {
+app.get("/api/member/:website/random", async (req, res) => {
   const website = req.params.website;
-  const random = getRandomWebsite(website);
+  const random = await getRandomWebsite(website);
   res.send(random);
 });
 
@@ -75,13 +78,13 @@ app.get("/member/:website/random", (req, res) => {
  * Internal API
  */
 
-app.get("/random", (_, res) => {
-  const random = getRandomWebsite();
+app.get("/random", async (_, res) => {
+  const random = await getRandomWebsite();
   res.send(random);
 });
 
-app.get("/random/navigate", (_, res) => {
-  const random = getRandomWebsite();
+app.get("/random/navigate", async (_, res) => {
+  const random = await getRandomWebsite();
   res.redirect(random.url);
 });
 
@@ -106,13 +109,13 @@ app.get("/widget/widget.js", (req, res) => {
   res.send(script.code);
 });
 
-app.get("/widget/:website", (req, res) => {
+app.get("/widget/:website", async (req, res) => {
   const id = req.params.website;
-  const current = getWebsite(id);
+  const current = await getWebsite(id);
   updateCacheForSite(current);
 
-  const target = getCachedWidgetData(current);
-  const website = getWebsite(target.targetWebsiteId);
+  const target = await getCachedWidgetData(current);
+  const website = await getWebsite(target.targetWebsiteId);
 
   if (!website.banner) {
     // EVENTUALLY LOAD DEFAULT BANNER
@@ -123,7 +126,7 @@ app.get("/widget/:website", (req, res) => {
   res.send(website);
 });
 
-app.get("/widget/:website/navigate", (req, res) => {
+app.get("/widget/:website/navigate", async (req, res) => {
   // This one doesn't update the cache because we don't
   // want the scenario where the user sees a banner and when
   // they click, it navigates to a different website.
@@ -132,10 +135,10 @@ app.get("/widget/:website/navigate", (req, res) => {
   res.setHeader("Expires", 0);
 
   const id = req.params.website;
-  const current = getWebsite(id);
+  const current = await getWebsite(id);
 
-  const target = getCachedWidgetData(current);
-  const website = getWebsite(target.targetWebsiteId);
+  const target = await getCachedWidgetData(current);
+  const website = await getWebsite(target.targetWebsiteId);
   res.redirect(website.url);
 });
 
@@ -146,11 +149,11 @@ app.get("/widget/:website/image", async (req, res) => {
   res.setHeader("Expires", 0);
 
   const id = req.params.website;
-  const current = getWebsite(id);
-  updateCacheForSite(current);
+  const current = await getWebsite(id);
+  await updateCacheForSite(current);
 
-  const target = getCachedWidgetData(current);
-  const website = getWebsite(target.targetWebsiteId);
+  const target = await getCachedWidgetData(current);
+  const website = await getWebsite(target.targetWebsiteId);
 
   if (!website.banner) {
     // EVENTUALLY LOAD DEFAULT BANNER
@@ -159,10 +162,10 @@ app.get("/widget/:website/image", async (req, res) => {
   }
 
   try {
-    console.log(website.banner)
+    console.log(website.banner);
     //don't do this anymore because images are hosted locally, so now I'm making an axios call to myself
     //just serve the image off disk
-    const url = 'http://localhost:3001' + website.banner;
+    const url = "http://localhost:3001" + website.banner;
     const response = await axios.get(url, {
       responseType: "arraybuffer",
     });
@@ -187,7 +190,7 @@ app.get("/widget", (req, res) => {
   res.render("widget", {});
 });
 
-app.post("/widget", (req, res) => {
+app.post("/widget", async (req, res) => {
   const { websiteId } = req.body as WidgetCreationRequest;
 
   if (!websiteId) {
@@ -197,7 +200,7 @@ app.post("/widget", (req, res) => {
     return;
   }
 
-  const website = getWebsite(websiteId);
+  const website = await getWebsite(websiteId);
 
   if (!website) {
     res.render("widget", {
@@ -215,8 +218,8 @@ app.post("/widget", (req, res) => {
   });
 });
 
-app.get("/", (_, res) => {
-  const randomSites = getRandomSiteList(5);
+app.get("/", async (_, res) => {
+  const randomSites = await getRandomSiteList(5);
 
   // I'm not sure we should keep this as it's a bit hacky
   const images = [

@@ -113,3 +113,5 @@ assets/*.css.map
 contents/categories.json
 contents/posts.json
 contents/tags.json
+
+data/
