@@ -52,6 +52,11 @@ export const Websites = sequelize.define("websites", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  hasWidget: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 });
 
 export const Requests = sequelize.define("requests", {
