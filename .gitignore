@@ -115,3 +115,6 @@ contents/posts.json
 contents/tags.json
 
 data/
+
+conf-dev.env
+conf-prod.env

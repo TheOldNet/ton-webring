@@ -12,18 +12,26 @@ import {
   getRandomWebsite,
   getWebsite,
   connect,
+  registerWebsiteRequest,
+  checkIfWebsiteExists,
 } from "./db";
 import { isOldBrowser } from "./old-browser";
 import { WidgetCreationRequest } from "./types";
 import { generateWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
+import { RecaptchaV2 } from "express-recaptcha";
+import { HOST, PORT, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY } from "./config";
 
 const app = express();
-const port = process.env.PORT ? parseInt(process.env.PORT) : 8007;
 
 connect();
 
-app.use(bodyParser.urlencoded());
+const recaptcha = new RecaptchaV2(RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY, {
+  callback: "cb",
+});
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "vash");
 app.set("etag", false);
 app.use(useragent.express());
@@ -182,8 +190,84 @@ app.get("/widget/:website/image", async (req, res) => {
  * Pages
  */
 
-app.get("/submit", (_, res) => {
-  res.render("submit-website", {});
+app.get("/submit", recaptcha.middleware.render, (_, res) => {
+  res.render("submit-website", { captcha: res.recaptcha });
+});
+
+app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
+  const errors: string[] = [];
+  if (!!req.recaptcha.error) {
+    errors.push("Invalid captcha!");
+  }
+
+  const { email, description, bannerurl, sitename, siteurl } = req.body;
+
+  if (!email) {
+    errors.push("The email is required.");
+  }
+
+  const isEmailValid =
+    /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gm.exec(
+      email
+    );
+
+  if (!isEmailValid) {
+    errors.push("The email address provided is invalid.");
+  }
+
+  if (!sitename) {
+    errors.push("The site name is mandatory.");
+  }
+
+  if (!siteurl) {
+    errors.push("The site URL is mandatory.");
+  }
+
+  const isURLValid =
+    /(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gm.exec(
+      siteurl
+    );
+
+  if (!isURLValid) {
+    errors.push("The website URL is invalid.");
+  } else {
+    const exists = await checkIfWebsiteExists(siteurl);
+    if (!!exists) {
+      errors.push("This website has already been submitted.");
+    }
+  }
+
+  if (!!description && description.length > 256) {
+    errors.push("Description is too long, try to keep it under 256 characters");
+  }
+
+  if (errors && errors.length) {
+    const captcha = recaptcha.render();
+    res.render("submit-website", {
+      errors,
+      email,
+      description,
+      bannerurl,
+      sitename,
+      captcha,
+    });
+    return;
+  }
+
+  try {
+    await registerWebsiteRequest({
+      description,
+      email,
+      name: sitename.trim(),
+      url: siteurl.trim(),
+      banner: bannerurl.trim(),
+    });
+
+    res.render("submit-website", { success: true });
+  } catch (ex) {
+    console.log(ex);
+    res.sendStatus(500);
+  }
 });
 
 app.get("/widget", (req, res) => {
@@ -239,6 +323,6 @@ app.get("/", async (_, res) => {
   res.render("home", { randomSites, arrows });
 });
 
-app.listen(port, "0.0.0.0", () =>
-  console.log(`Example app listening at http://localhost:${port}`)
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`Example app listening at http:${HOST}:${PORT}`)
 );

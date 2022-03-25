@@ -1,7 +1,7 @@
 import * as fs from "fs";
 
 import * as yaml from "yaml";
-import { Website } from "./types";
+import { Website, WebsiteRequest } from "./types";
 import * as path from "path";
 import { DataTypes, Sequelize } from "sequelize";
 import md5 = require("md5");
@@ -198,4 +198,17 @@ export async function getPreviousWebsite(id: string) {
   }
 
   return websites[previous];
+}
+
+export async function registerWebsiteRequest(data: Omit<WebsiteRequest, "id">) {
+  const id = md5(data.url);
+  await Requests.create({ id, ...data });
+}
+
+export async function checkIfWebsiteExists(url: string) {
+  const id = md5(url);
+  const reqCount = await Requests.count({ where: { id } });
+  const siteCount = await Websites.count({ where: { id } });
+
+  return reqCount > 0 || siteCount > 0;
 }
