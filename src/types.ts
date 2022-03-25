@@ -19,4 +19,5 @@ export type WebsiteRequest = {
   email: string;
   banner?: string;
   description: string;
+  denied?: boolean;
 };

@@ -85,6 +85,11 @@ export const Requests = sequelize.define("requests", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  denied: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 });
 
 /**
@@ -211,4 +216,9 @@ export async function checkIfWebsiteExists(url: string) {
   const siteCount = await Websites.count({ where: { id } });
 
   return reqCount > 0 || siteCount > 0;
+}
+
+export async function getAllRequests() {
+  const all = await Requests.findAll();
+  return all.map((o: any) => o.toJSON() as WebsiteRequest);
 }

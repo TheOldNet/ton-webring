@@ -1,26 +1,39 @@
 import axios from "axios";
 import * as bodyParser from "body-parser";
 import * as express from "express";
+import { RecaptchaV2 } from "express-recaptcha";
 import * as useragent from "express-useragent";
 import * as fs from "fs";
+import * as jwt from "jsonwebtoken";
 import * as path from "path";
 import * as UglifyJs from "uglify-js";
+import { authorization } from "./auth-middleware";
 import {
+  ADMIN_PASSWORD,
+  ADMIN_USERNAME,
+  HOST,
+  JWT_SECRET_KEY,
+  PORT,
+  RECAPTCHA_SECRET_KEY,
+  RECAPTCHA_SITE_KEY,
+} from "./config";
+import {
+  checkIfWebsiteExists,
+  connect,
+  getAllRequests,
+  getAllWebsites,
   getNextWebsite,
   getPreviousWebsite,
   getRandomSiteList,
   getRandomWebsite,
   getWebsite,
-  connect,
   registerWebsiteRequest,
-  checkIfWebsiteExists,
 } from "./db";
 import { isOldBrowser } from "./old-browser";
 import { WidgetCreationRequest } from "./types";
 import { generateWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
-import { RecaptchaV2 } from "express-recaptcha";
-import { HOST, PORT, RECAPTCHA_SECRET_KEY, RECAPTCHA_SITE_KEY } from "./config";
+import cookieParser = require("cookie-parser");
 
 const app = express();
 
@@ -35,6 +48,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "vash");
 app.set("etag", false);
 app.use(useragent.express());
+app.use(cookieParser());
 
 app.use("/assets", express.static("assets"));
 
@@ -321,6 +335,44 @@ app.get("/", async (_, res) => {
   });
 
   res.render("home", { randomSites, arrows });
+});
+
+app.get("/login", recaptcha.middleware.render, async (_, res) => {
+  res.render("login", { captcha: res.recaptcha });
+});
+
+app.post("/login", recaptcha.middleware.verify, async (req, res) => {
+  const { username, password } = req.body;
+
+  if (
+    username !== ADMIN_USERNAME ||
+    password !== ADMIN_PASSWORD ||
+    !!req.recaptcha.error
+  ) {
+    const captcha = recaptcha.render();
+    return res.status(403).render("login", { captcha, failed: true });
+  }
+
+  const token = jwt.sign({ user: ADMIN_USERNAME }, JWT_SECRET_KEY);
+  return res
+    .cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .redirect("/admin");
+});
+
+app.get("/logout", authorization, (_, res) => {
+  res
+    .clearCookie("access_token")
+    .status(200)
+    .json({ message: "Successfully logged out" });
+});
+
+app.get("/admin", authorization, async (_, res) => {
+  const requests = await getAllRequests();
+  const current = await getAllWebsites();
+  return res.render("admin", { requests, current });
 });
 
 app.listen(PORT, "0.0.0.0", () =>
