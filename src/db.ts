@@ -36,6 +36,10 @@ export const Websites = sequelize.define("websites", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -57,6 +61,10 @@ export const Requests = sequelize.define("requests", {
     primaryKey: true,
   },
   url: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
     type: DataTypes.STRING,
     allowNull: false,
   },
