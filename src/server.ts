@@ -1,4 +1,3 @@
-import axios from "axios";
 import * as bodyParser from "body-parser";
 import * as express from "express";
 import { RecaptchaV2 } from "express-recaptcha";
@@ -7,6 +6,12 @@ import * as fs from "fs";
 import * as jwt from "jsonwebtoken";
 import * as path from "path";
 import * as UglifyJs from "uglify-js";
+import {
+  approveRequest,
+  confirmBanner,
+  denyRequest,
+  removeWebsite,
+} from "./admin-actions";
 import { authorization } from "./auth-middleware";
 import {
   ADMIN_PASSWORD,
@@ -175,6 +180,7 @@ app.get("/widget/:website/image", async (req, res) => {
   await updateCacheForSite(current);
 
   const target = await getCachedWidgetData(current);
+
   const website = await getWebsite(target.targetWebsiteId);
 
   if (!website.banner) {
@@ -183,21 +189,19 @@ app.get("/widget/:website/image", async (req, res) => {
     return;
   }
 
-  try {
-    console.log(website.banner);
-    //don't do this anymore because images are hosted locally, so now I'm making an axios call to myself
-    //just serve the image off disk
-    const url = "http://localhost:3001" + website.banner;
-    const response = await axios.get(url, {
-      responseType: "arraybuffer",
-    });
+  fs.readFile(
+    path.join(__dirname, "../assets/banners", website.banner),
+    (err, data) => {
+      if (err) {
+        console.log("Got error: " + err.message, err);
+        res.sendStatus(500);
+        return;
+      }
 
-    // TODO: This has to be dynamic or only support gifs. Some banner submissions were png which will be no good for retro support
-    res.type("gif");
-    res.send(response.data);
-  } catch (ex) {
-    console.log("Got error: " + ex.message, ex);
-  }
+      res.type(path.extname(website.banner).substring(1));
+      res.send(data);
+    }
+  );
 });
 
 /**
@@ -373,6 +377,28 @@ app.get("/admin", authorization, async (_, res) => {
   const requests = await getAllRequests();
   const current = await getAllWebsites();
   return res.render("admin", { requests, current });
+});
+
+app.post("/admin_action", authorization, async (req, res) => {
+  const { body } = req;
+
+  if (typeof body.approve === "string" && body.approve) {
+    await approveRequest(body.id);
+  }
+
+  if (typeof body.deny === "string" && body.deny) {
+    await denyRequest(body.id);
+  }
+
+  if (typeof body.remove === "string" && body.remove) {
+    await removeWebsite(body.id);
+  }
+
+  if (typeof body.confirm_banner === "string" && body.confirm_banner) {
+    await confirmBanner(body.id);
+  }
+
+  return res.redirect("/admin");
 });
 
 app.listen(PORT, "0.0.0.0", () =>

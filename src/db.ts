@@ -1,9 +1,9 @@
 import * as fs from "fs";
 
 import * as yaml from "yaml";
-import { Website, WebsiteRequest } from "./types";
+import { WebsiteAttributes, WebsiteRequest } from "./types";
 import * as path from "path";
-import { DataTypes, Sequelize } from "sequelize";
+import { DataTypes, Sequelize, Transaction } from "sequelize";
 import md5 = require("md5");
 import { Op } from "sequelize";
 
@@ -12,7 +12,7 @@ const websitesYaml = fs.readFileSync(
   { encoding: "utf-8" }
 );
 
-const ymlWebsites: Website[] = yaml.parse(websitesYaml);
+const ymlWebsites: WebsiteAttributes[] = yaml.parse(websitesYaml);
 
 const dataFolder = path.join(__dirname, "../data");
 
@@ -126,19 +126,29 @@ export async function connect() {
   }
 }
 
-export async function getWebsite(id: string): Promise<Website> {
+export async function getWebsite(id: string): Promise<WebsiteAttributes> {
   const result = await Websites.findOne({ where: { id } });
   return (result as any).toJSON();
 }
 
-export async function getAllWebsites(): Promise<Website[]> {
+export async function getRequest(
+  id: string,
+  t?: Transaction
+): Promise<WebsiteRequest> {
+  const result = await Requests.findOne({ where: { id }, transaction: t });
+  return (result as any).toJSON();
+}
+
+export async function getAllWebsites(): Promise<WebsiteAttributes[]> {
   const result = await Websites.findAll();
   return result.map((o: any) => o.toJSON());
 }
 
 // Find a more efficient way of doing this when the number of sites
 // reaches a more significant quantity
-export async function getRandomSiteList(total: number = 5): Promise<Website[]> {
+export async function getRandomSiteList(
+  total: number = 5
+): Promise<WebsiteAttributes[]> {
   const websites = await getAllWebsites();
   const indexes = new Array<number>(total);
   const len = websites.length;
@@ -159,7 +169,7 @@ export async function getRandomSiteList(total: number = 5): Promise<Website[]> {
 // reaches a more significant quantity
 export async function getRandomWebsite(
   currentId: string = ""
-): Promise<Website> {
+): Promise<WebsiteAttributes> {
   const filtered = (
     await Websites.findAll({
       where: {
@@ -178,7 +188,7 @@ export async function getRandomWebsite(
 // reaches a more significant quantity
 export async function getNextWebsite(id: string) {
   const websites = (await Websites.findAll({ order: ["id", "asc"] })).map(
-    (o: any) => o.toJSON() as Website
+    (o: any) => o.toJSON() as WebsiteAttributes
   );
 
   const index = websites.findIndex((w) => w.id === id);
@@ -194,7 +204,7 @@ export async function getNextWebsite(id: string) {
 // reaches a more significant quantity
 export async function getPreviousWebsite(id: string) {
   const websites = (await Websites.findAll({ order: ["id", "asc"] })).map(
-    (o: any) => o.toJSON() as Website
+    (o: any) => o.toJSON() as WebsiteAttributes
   );
   const index = websites.findIndex((w) => w.id === id);
   let previous = index - 1;
@@ -219,6 +229,32 @@ export async function checkIfWebsiteExists(url: string) {
 }
 
 export async function getAllRequests() {
-  const all = await Requests.findAll();
+  const all = await Requests.findAll({ where: { denied: { [Op.not]: true } } });
   return all.map((o: any) => o.toJSON() as WebsiteRequest);
+}
+
+export async function addWebsite(website: WebsiteAttributes, t?: Transaction) {
+  return Websites.create(website, { transaction: t });
+}
+
+export async function removeRequest(id: string, t?: Transaction) {
+  return Requests.destroy({ where: { id }, transaction: t });
+}
+
+export async function denyRequest(id: string, t?: Transaction) {
+  return Requests.update(
+    { denied: true },
+    { where: { id }, transaction: t, returning: true }
+  );
+}
+
+export async function removeWebsite(id: string, t?: Transaction) {
+  return Websites.destroy({ where: { id }, transaction: t });
+}
+
+export async function confirmBanner(id: string, t?: Transaction) {
+  return Websites.update(
+    { hasWidget: true },
+    { where: { id }, transaction: t, returning: true }
+  );
 }

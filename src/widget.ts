@@ -1,7 +1,7 @@
-import { Website } from "./types";
+import { WebsiteAttributes } from "./types";
 import { getHost } from "./helpers";
 
-export function generateWidget(website: Website) {
+export function generateWidget(website: WebsiteAttributes) {
   const host = getHost();
   return `
   <a id="theoldnet-webring-href" href="${host}/widget/${website.id}/navigate" data-website-id="${website.id}"><img src="${host}/widget/${website.id}/image" alt="${website.name}" border="0"></a><br>
