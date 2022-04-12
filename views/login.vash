@@ -1,0 +1,19 @@
+@html.extend('layout', function () {
+  @html.append('content', function () {
+    <center>
+      <h1>Login</h1>
+      @if (model.failed === true) {
+          <font color="red">Login failed</font>
+      }
+      <form action="/login" method="POST">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" value="" width="500" style="width: 500px"><br><br>
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" value="" width="500" style="width: 500px"><br><br>
+        <br>
+        @html.raw(model.captcha)<br>
+        <input type="submit" value="Login">
+      </form> 
+    </center>
+  })
+})

@@ -1,0 +1,101 @@
+@html.extend('layout', function () {
+  @html.append('content', function () {
+    <script>
+      function validateDeny(form) {
+        return confirm('Are you sure you want to deny this request?');
+      }
+
+      function validateApprove(form) {
+        return confirm('Are you sure you want to approve this request?');
+      }
+
+      function validateRemove(form) {
+        return confirm('Are you sure you want to remove this website from the Webring?');
+      }
+
+      function validateConfirmBanner(form) {
+        return confirm('Are you sure this website has the banner embedded?');
+      }
+    </script>
+
+    <h1>Admin</h1>
+
+    <h2>WebRing Requests</h2>
+    <table width="100%" border="2" cellspacing="2" cellpadding="2">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>URL</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Email</th>
+          <th width="470px">Banner</th>
+          <th width="150px">Actions</th>
+        </tr>
+      </thead>
+      @model.requests.forEach(function (request) {
+        <tr>
+          <td>@request.id</td>
+          <td><a href="@request.url" target="_blank">@request.url</a></td>
+          <td>@request.name</td>
+          <td>@request.description</td>
+          <td><a href="mailto:@request.email">@request.email</a></td>
+          <td><img src="@request.banner" alt="@request.name"></td>
+          <td>
+            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateDeny(this);">
+              <input type="hidden" name="id" value="@request.id" />
+              <input type="submit" name="deny" value="Deny request" />
+            </form>
+            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateApprove(this);">
+              <input type="hidden" name="id" value="@request.id" />
+              <input type="submit" name="approve" value="Approve" />
+            </form>
+          </th>
+        </tr>
+      })
+    </table>
+
+    <h2>Current WebRing Websites</h2>
+    <table width="100%" border="2" cellspacing="2" cellpadding="2">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>URL</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Email</th>
+          <th width="470px">Banner</th>
+          <th>Has Embed</th>
+          <th width="210px">Actions</th>
+        </tr>
+      </thead>
+      @model.current.forEach(function (site) {
+        <tr>
+          <td>@site.id</td>
+          <td><a href="@site.url" target="_blank">@site.url</a></td>
+          <td>@site.name</td>
+          <td>@site.description</td>
+          <td><a href="mailto:@site.email">@site.email</a></td>
+          <td><img src="/assets/banners/@site.banner" alt="@site.name"></td>
+          <td>
+            @if (site.hasWidget === true) {
+              <span>YES</span>
+            } else {
+              <span>NO</span>
+            }
+          </td>
+          <td>
+            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateRemove(this);">
+              <input type="hidden" name="id" value="@site.id" />
+              <input type="submit" name="remove" value="Remove website" />
+            </form>
+            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateConfirmBanner(this);">
+              <input type="hidden" name="id" value="@site.id" />
+              <input type="submit" name="confirm_banner" value="Confirm embed" />
+            </form>
+          </th>
+        </tr>
+      })
+    </table>
+  })
+})

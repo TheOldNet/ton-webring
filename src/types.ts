@@ -1,11 +1,11 @@
-export type Website = {
+export type WebsiteAttributes = {
   id: string;
   name: string;
   email: string;
   url: string;
   banner?: string;
   description: string;
-  hasBanner?: boolean;
+  hasWidget?: boolean;
 };
 
 export type WidgetCreationRequest = {
@@ -19,4 +19,5 @@ export type WebsiteRequest = {
   email: string;
   banner?: string;
   description: string;
+  denied?: boolean;
 };
