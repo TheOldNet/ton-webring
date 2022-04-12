@@ -1,11 +1,36 @@
-// Need to test this properly, I haven't tested it with
+import axios from "axios";
+import * as fs from "fs";
+import * as path from "path";
+import { HOST } from "./config";
+
 // An actual domain
 export function getHost() {
-  const env = process.env.ENVIRONMENT;
-  
-  if (env === "production") {
-    return "http://webring.theoldnet.com";
-  }
+  return HOST;
+}
 
-  return "http://localhost:3010";
+export async function downloadFile(
+  fileUrl: string,
+  outputLocationPath: string
+): Promise<boolean> {
+  const response = await axios({
+    method: "GET",
+    url: fileUrl,
+    responseType: "stream",
+  });
+  return new Promise((resolve) => {
+    const w = response.data.pipe(fs.createWriteStream(outputLocationPath));
+    w.on("finish", () => {
+      resolve(true);
+    });
+  });
+}
+
+export async function downloadBanner(id: string, fileUrl?: string) {
+  if (!fileUrl) {
+    return undefined;
+  }
+  const filename = id + path.extname(fileUrl);
+  const savePath = path.join(__dirname, "../assets/banners", filename);
+  await downloadFile(fileUrl, savePath);
+  return filename;
 }

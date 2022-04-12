@@ -1,19 +1,45 @@
 @html.extend('layout', function () {
   @html.append('content', function () {
     <h1>Submit a website</h1>
-    <p>Please submit your website in the Google Form below</p>
-    <p>
-      <a href="https://docs.google.com/forms/d/e/1FAIpQLSdB9JwV5FBpqT_Va99e0SFTX_vrLMsC81sNZo25CZmKhSIPaA/viewform">
-        https://docs.google.com/forms/d/e/1FAIpQLSdB9JwV5FBpqT_Va99e0SFTX_vrLMsC81sNZo25CZmKhSIPaA/viewform
-      </a>
-    </p>
-    <p>Currently websites are added manually, which means that it might take days or weeks for it to be added to the webring.</p>
-    <p>You will receive an email once it's added. Don't forget to add the webring widget to your website once it's in the webring.</p>
-    <br>
-    <iframe width="100%" height="500" src="https://docs.google.com/forms/d/e/1FAIpQLSdB9JwV5FBpqT_Va99e0SFTX_vrLMsC81sNZo25CZmKhSIPaA/viewform">
-    </iframe>
-    <br>
-    <br>
+    <p>Sorry, but for security reasons, submitting websites in old browsers doesn't work, please use a modern browser to do that.</p>
+    <p>Submit your website using the form below</p>
+
+    @if (model.errors && model.errors.length) {
+      <h3>Please review the following issues:</h3>
+      <font color="red">
+        <ul>
+          @model.errors.forEach(function (item) {
+            <li>@item</li>
+          })
+        </ul>
+      </font>
+    }
+
+    @if (model.success === true) {
+      <h1>Your website was submitted successfully!</h1>
+      <p>We'll be in touch when it's added to the webring</p>
+      <p>After that you'll be able to add the webring embed to your website</p>
+      <p>Websites that don't add the embed will be removed from the webring.</p>
+    }
+
+    @if (!model.success) {
+      <form action="/submit" method="POST">
+        <label for="email">Your email address:</label><br>
+        <input type="text" id="email" name="email" value="" placeholder="you@domain.com" width="500" style="width: 500px"><br><br>
+        <label for="sitename">Website name:</label><br>
+        <input type="text" id="sitename" name="sitename" value="" placeholder="My cool retro site" width="500" style="width: 500px"><br><br>
+        <label for="siteurl">Website URL:</label><br>
+        <input type="text" id="siteurl" name="siteurl" value="" placeholder="http://my.coolsite.com" width="500" style="width: 500px"><br><br>
+        <label for="bannerurl">Banner Image URL (468x60 pixels, 256 colors, jpeg or gif):</label><br>
+        <input type="text" id="bannerurl" name="bannerurl" value="" placeholder="http://mysite.com/banner.gif" width="500" style="width: 500px"><br><br>
+        <label for="description">Brief website description:</label><br>
+        <input type="text" id="description" name="description" value="" placeholder="Your source for cool stuff" width="500" style="width: 500px"><br><br>
+        <br>
+        @html.raw(model.captcha)<br>
+        <input type="submit" value="Submit">
+      </form> 
+    }
+
     <a href="/">Back to HOME</a>
   })
 })
