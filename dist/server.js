@@ -427,7 +427,6 @@ app.post("/login", recaptcha.middleware.verify, function (req, res) { return __a
         return [2, res
                 .cookie("access_token", token, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
             })
                 .redirect("/admin")];
     });
