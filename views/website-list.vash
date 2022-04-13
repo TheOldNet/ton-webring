@@ -13,7 +13,7 @@
     </tr>
     <tr>
       <td>
-        <img src="@site.banner" alt="@site.name">
+        <img src="/assets/banners/@site.banner" alt="@site.name">
       </td>
     </tr>
     <tr>
