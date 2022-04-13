@@ -62,6 +62,7 @@ function approveRequest(id) {
                                         name: name_1,
                                         url: url,
                                         banner: downloaded,
+                                        isVintage: false,
                                     }, t)];
                             case 3:
                                 _b.sent();

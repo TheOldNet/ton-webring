@@ -19,6 +19,7 @@ export async function approveRequest(id: string) {
           name,
           url,
           banner: downloaded,
+          isVintage: false,
         },
         t
       );

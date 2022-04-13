@@ -91,6 +91,11 @@ exports.Websites = exports.sequelize.define("websites", {
         type: sequelize_1.DataTypes.STRING,
         allowNull: true,
     },
+    isVintage: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
     hasWidget: {
         type: sequelize_1.DataTypes.BOOLEAN,
         allowNull: false,

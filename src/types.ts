@@ -5,6 +5,7 @@ export type WebsiteAttributes = {
   url: string;
   banner?: string;
   description: string;
+  isVintage: boolean;
   hasWidget?: boolean;
 };
 

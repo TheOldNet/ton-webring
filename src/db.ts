@@ -52,6 +52,11 @@ export const Websites = sequelize.define("websites", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  isVintage: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   hasWidget: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
