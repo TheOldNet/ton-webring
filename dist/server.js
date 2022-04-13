@@ -385,24 +385,13 @@ app.post("/widget", function (req, res) { return __awaiter(void 0, void 0, void 
     });
 }); });
 app.get("/", function (_, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var randomSites, images, index, arrows;
+    var randomSites;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4, (0, db_1.getRandomSiteList)(5)];
             case 1:
                 randomSites = _a.sent();
-                images = [
-                    "animated_bullet_009.gif",
-                    "animated_bullet_011.gif",
-                    "animated_bullet_014.gif",
-                ];
-                index = 0;
-                arrows = randomSites.map(function (site) {
-                    var image = images[index];
-                    index = ++index >= images.length ? 0 : index;
-                    return image;
-                });
-                res.render("home", { randomSites: randomSites, arrows: arrows });
+                res.render("home", { randomSites: randomSites });
                 return [2];
         }
     });
