@@ -351,19 +351,14 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
         }
     });
 }); });
-app.get("/widget", function (req, res) {
-    res.render("widget", {});
-});
-app.post("/widget", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+app.get("/widget", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var websiteId, website, generatedWidget;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                websiteId = req.body.websiteId;
+                websiteId = req.query.websiteId;
                 if (!websiteId) {
-                    res.render("widget", {
-                        error: "A website ID from the email has to be provided.",
-                    });
+                    res.render("widget", {});
                     return [2];
                 }
                 return [4, (0, db_1.getWebsite)(websiteId)];

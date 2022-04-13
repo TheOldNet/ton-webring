@@ -1,7 +1,7 @@
 @html.extend('layout', function () {
   @html.append('content', function () {
     <h1>Generate TheOldNet Webring Widget</h1>
-    <form action="/widget" method="POST">
+    <form action="/widget" method="GET">
       Website Id (from email):
       <br>
       <input type="text" name="websiteId" value="@model.websiteId">

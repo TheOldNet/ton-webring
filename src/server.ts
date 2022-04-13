@@ -35,7 +35,6 @@ import {
   registerWebsiteRequest,
 } from "./db";
 import { isOldBrowser } from "./old-browser";
-import { WidgetCreationRequest } from "./types";
 import { generateWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
 import cookieParser = require("cookie-parser");
@@ -289,17 +288,11 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
   }
 });
 
-app.get("/widget", (req, res) => {
-  res.render("widget", {});
-});
-
-app.post("/widget", async (req, res) => {
-  const { websiteId } = req.body as WidgetCreationRequest;
+app.get("/widget", async (req, res) => {
+  const websiteId = req.query.websiteId as string;
 
   if (!websiteId) {
-    res.render("widget", {
-      error: "A website ID from the email has to be provided.",
-    });
+    res.render("widget", {});
     return;
   }
 
