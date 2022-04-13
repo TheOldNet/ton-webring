@@ -279,6 +279,7 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
       name: sitename.trim(),
       url: siteurl.trim(),
       banner: bannerurl.trim(),
+      isVintage: false,
     });
 
     res.render("submit-website", { success: true });

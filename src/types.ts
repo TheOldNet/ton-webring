@@ -20,5 +20,6 @@ export type WebsiteRequest = {
   email: string;
   banner?: string;
   description: string;
+  isVintage: boolean;
   denied?: boolean;
 };

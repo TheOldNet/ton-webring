@@ -90,6 +90,11 @@ export const Requests = sequelize.define("requests", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  isVintage: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   denied: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -192,7 +197,7 @@ export async function getRandomWebsite(
 // Find a more efficient way of doing this when the number of sites
 // reaches a more significant quantity
 export async function getNextWebsite(id: string) {
-  const websites = (await Websites.findAll({ order: ["id", "asc"] })).map(
+  const websites = (await Websites.findAll({ order: [["id", "ASC"]] })).map(
     (o: any) => o.toJSON() as WebsiteAttributes
   );
 
@@ -208,7 +213,7 @@ export async function getNextWebsite(id: string) {
 // Find a more efficient way of doing this when the number of sites
 // reaches a more significant quantity
 export async function getPreviousWebsite(id: string) {
-  const websites = (await Websites.findAll({ order: ["id", "asc"] })).map(
+  const websites = (await Websites.findAll({ order: [["id", "ASC"]] })).map(
     (o: any) => o.toJSON() as WebsiteAttributes
   );
   const index = websites.findIndex((w) => w.id === id);
