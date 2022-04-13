@@ -105,14 +105,8 @@ typings/
 
 .sass-cache
 
-dist/
-assets/client.js
-assets/client.js.map
-assets/*.css
-assets/*.css.map
-contents/categories.json
-contents/posts.json
-contents/tags.json
+# Temporarily adding dist to the repo as it's taking forever to run on the server.
+# dist/
 
 data/
 
