@@ -323,22 +323,7 @@ app.post("/widget", async (req, res) => {
 app.get("/", async (_, res) => {
   const randomSites = await getRandomSiteList(5);
 
-  // I'm not sure we should keep this as it's a bit hacky
-  const images = [
-    "animated_bullet_009.gif",
-    "animated_bullet_011.gif",
-    "animated_bullet_014.gif",
-  ];
-
-  let index = 0;
-
-  const arrows = randomSites.map((site) => {
-    const image = images[index];
-    index = ++index >= images.length ? 0 : index;
-    return image;
-  });
-
-  res.render("home", { randomSites, arrows });
+  res.render("home", { randomSites });
 });
 
 app.get("/login", recaptcha.middleware.render, async (_, res) => {

@@ -2,28 +2,9 @@
   @{
     var isLast = index === (model.randomSites.length - 1);
   }
-  <table  cellspacing="0" cellpadding="0" border="0" width="100%">
-    <tr>
-      <td rowspan="3" valign="top" width="23">
-        <img src="/assets/@model.arrows[index]">
-      </td>
-      <td>
-        <a href="@site.url">@site.name</a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <img src="/assets/banners/@site.banner" alt="@site.name">
-      </td>
-    </tr>
-    <tr>
-      <td>
-        @site.description
-      </td>
-    </tr>
-  </table>
+  <img src="/assets/banners/@site.banner" alt="@site.name"><br><a href="@site.url"><strong>@site.name</strong></a><br>@site.description
   @if (!isLast) {
-    <hr/>  
+    <br><hr/>  
   }
 })
 
