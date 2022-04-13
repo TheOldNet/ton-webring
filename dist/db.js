@@ -128,6 +128,11 @@ exports.Requests = exports.sequelize.define("requests", {
         type: sequelize_1.DataTypes.STRING,
         allowNull: true,
     },
+    isVintage: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
     denied: {
         type: sequelize_1.DataTypes.BOOLEAN,
         allowNull: false,
@@ -293,7 +298,7 @@ function getNextWebsite(id) {
         var websites, index, next;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, exports.Websites.findAll({ order: ["id", "asc"] })];
+                case 0: return [4, exports.Websites.findAll({ order: [["id", "ASC"]] })];
                 case 1:
                     websites = (_a.sent()).map(function (o) { return o.toJSON(); });
                     index = websites.findIndex(function (w) { return w.id === id; });
@@ -312,7 +317,7 @@ function getPreviousWebsite(id) {
         var websites, index, previous;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, exports.Websites.findAll({ order: ["id", "asc"] })];
+                case 0: return [4, exports.Websites.findAll({ order: [["id", "ASC"]] })];
                 case 1:
                     websites = (_a.sent()).map(function (o) { return o.toJSON(); });
                     index = websites.findIndex(function (w) { return w.id === id; });

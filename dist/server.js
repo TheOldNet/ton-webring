@@ -336,6 +336,7 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
                         name: sitename.trim(),
                         url: siteurl.trim(),
                         banner: bannerurl.trim(),
+                        isVintage: false,
                     })];
             case 5:
                 _b.sent();
