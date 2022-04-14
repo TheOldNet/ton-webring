@@ -178,7 +178,8 @@ app.get("/random/list", function (_, res) {
 });
 app.get("/widget/widget.js", function (req, res) {
     if ((0, old_browser_1.isOldBrowser)(req)) {
-        res.send("");
+        res.type("text/javascript");
+        res.send("// nothing");
         return;
     }
     var js = fs.readFileSync(path.join(__dirname, "../assets/widget.js"), {
