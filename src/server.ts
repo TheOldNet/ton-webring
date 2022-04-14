@@ -121,7 +121,8 @@ app.get("/random/list", (_, res) => {
 
 app.get("/widget/widget.js", (req, res) => {
   if (isOldBrowser(req)) {
-    res.send("");
+    res.type("text/javascript");
+    res.send("// nothing");
     return;
   }
 

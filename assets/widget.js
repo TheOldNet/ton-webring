@@ -5,7 +5,7 @@
   var img = document.querySelector("#theoldnet-webring-href img");
   var id = link.dataset.websiteId;
 
-  fetch("/widget/" + id)
+  fetch("http://webring.theoldnet.com/widget/" + id)
     .then((response) => response.json())
     .then((website) => {
       link.href = website.url;
