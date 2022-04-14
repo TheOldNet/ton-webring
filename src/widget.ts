@@ -11,6 +11,6 @@ export function generateWidget(website: WebsiteAttributes) {
     [<a href="${host}/member/${website.id}/random/navigate">Random site</a>] -
     [<a href="${host}/member/${website.id}/next/navigate">Next site</a>]
   </font>
-  <script type="text/javascript" src="/widget/widget.js"></script>
+  <script type="text/javascript" src="${host}/widget/widget.js"></script>
   `;
 }
