@@ -101,6 +101,13 @@ exports.Websites = exports.sequelize.define("websites", {
         allowNull: false,
         defaultValue: false,
     },
+    order: {
+        type: sequelize_1.DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+}, {
+    indexes: [{ unique: true, fields: ["order"] }],
 });
 exports.Requests = exports.sequelize.define("requests", {
     id: {
@@ -141,7 +148,7 @@ exports.Requests = exports.sequelize.define("requests", {
 });
 function moveFromYaml() {
     return __awaiter(this, void 0, void 0, function () {
-        var webSitesCount, _i, ymlWebsites_1, site, id;
+        var webSitesCount, _i, ymlWebsites_1, site, id, order;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, exports.Websites.count()];
@@ -153,23 +160,28 @@ function moveFromYaml() {
                     _i = 0, ymlWebsites_1 = ymlWebsites;
                     _a.label = 2;
                 case 2:
-                    if (!(_i < ymlWebsites_1.length)) return [3, 5];
+                    if (!(_i < ymlWebsites_1.length)) return [3, 6];
                     site = ymlWebsites_1[_i];
                     id = md5(site.url);
+                    return [4, exports.Websites.max("order")];
+                case 3:
+                    order = (_a.sent()) || 0;
                     return [4, exports.Websites.create({
                             id: id,
                             name: site.name,
                             url: site.url,
                             banner: site.banner,
                             description: site.description,
+                            email: site.email,
+                            order: order + 1,
                         })];
-                case 3:
-                    _a.sent();
-                    _a.label = 4;
                 case 4:
+                    _a.sent();
+                    _a.label = 5;
+                case 5:
                     _i++;
                     return [3, 2];
-                case 5: return [2];
+                case 6: return [2];
             }
         });
     });
@@ -383,8 +395,14 @@ function getAllRequests() {
 exports.getAllRequests = getAllRequests;
 function addWebsite(website, t) {
     return __awaiter(this, void 0, void 0, function () {
+        var order;
         return __generator(this, function (_a) {
-            return [2, exports.Websites.create(website, { transaction: t })];
+            switch (_a.label) {
+                case 0: return [4, exports.Websites.max("order")];
+                case 1:
+                    order = (_a.sent()) || 0;
+                    return [2, exports.Websites.create(__assign(__assign({}, website), { order: order + 1 }), { transaction: t })];
+            }
         });
     });
 }
