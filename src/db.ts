@@ -26,48 +26,54 @@ export const sequelize = new Sequelize({
   logging: false,
 });
 
-export const Websites = sequelize.define("websites", {
-  id: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    primaryKey: true,
+export const Websites = sequelize.define(
+  "websites",
+  {
+    id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      primaryKey: true,
+    },
+    url: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    banner: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    isVintage: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    hasWidget: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    order: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
   },
-  url: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  banner: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  description: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  isVintage: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  hasWidget: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  order: {
-    type: DataTypes.NUMBER,
-    allowNull: false,
-    autoIncrement: true,
-  },
-});
+  {
+    indexes: [{ unique: true, fields: ["order"] }],
+  }
+);
 
 export const Requests = sequelize.define("requests", {
   id: {
@@ -120,6 +126,8 @@ export async function moveFromYaml() {
 
   for (const site of ymlWebsites) {
     const id = md5(site.url);
+    const order: number = (await Websites.max("order")) || 0;
+
     await Websites.create({
       id,
       name: site.name,
@@ -127,6 +135,7 @@ export async function moveFromYaml() {
       banner: site.banner,
       description: site.description,
       email: site.email,
+      order: order + 1,
     });
   }
 }
@@ -250,7 +259,8 @@ export async function getAllRequests() {
 }
 
 export async function addWebsite(website: WebsiteAttributes, t?: Transaction) {
-  return Websites.create(website, { transaction: t });
+  const order: number = (await Websites.max("order")) || 0;
+  return Websites.create({ ...website, order: order + 1 }, { transaction: t });
 }
 
 export async function removeRequest(id: string, t?: Transaction) {
