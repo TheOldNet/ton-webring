@@ -62,6 +62,11 @@ export const Websites = sequelize.define("websites", {
     allowNull: false,
     defaultValue: false,
   },
+  order: {
+    type: DataTypes.NUMBER,
+    allowNull: false,
+    autoIncrement: true,
+  },
 });
 
 export const Requests = sequelize.define("requests", {
@@ -121,6 +126,7 @@ export async function moveFromYaml() {
       url: site.url,
       banner: site.banner,
       description: site.description,
+      email: site.email,
     });
   }
 }
