@@ -48,6 +48,7 @@ var admin_actions_1 = require("./admin-actions");
 var auth_middleware_1 = require("./auth-middleware");
 var config_1 = require("./config");
 var db_1 = require("./db");
+var helpers_1 = require("./helpers");
 var old_browser_1 = require("./old-browser");
 var widget_1 = require("./widget");
 var widget_cache_1 = require("./widget-cache");
@@ -242,9 +243,6 @@ app.get("/widget/:website/image", function (req, res) { return __awaiter(void 0,
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-                res.setHeader("Pragma", "no-cache");
-                res.setHeader("Expires", 0);
                 id = req.params.website;
                 return [4, (0, db_1.getWebsite)(id)];
             case 1:
@@ -262,15 +260,18 @@ app.get("/widget/:website/image", function (req, res) { return __awaiter(void 0,
                     res.sendStatus(404);
                     return [2];
                 }
-                fs.readFile(path.join(__dirname, "../assets/banners", website.banner), function (err, data) {
-                    if (err) {
-                        console.log("Got error: " + err.message, err);
-                        res.sendStatus(500);
-                        return;
-                    }
-                    res.type(path.extname(website.banner).substring(1));
-                    res.send(data);
-                });
+                fs.readFile(path.join(__dirname, "../assets/banners", website.banner), function (err, data) { return __awaiter(void 0, void 0, void 0, function () {
+                    return __generator(this, function (_a) {
+                        if (err) {
+                            console.log("Got error: " + err.message, err);
+                            res.sendStatus(500);
+                            return [2];
+                        }
+                        res.type(path.extname(website.banner).substring(1));
+                        res.send(data);
+                        return [2];
+                    });
+                }); });
                 return [2];
         }
     });
@@ -279,17 +280,28 @@ app.get("/submit", recaptcha.middleware.render, function (_, res) {
     res.render("submit-website", { captcha: res.recaptcha });
 });
 app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var errors, _a, email, description, bannerurl, sitename, siteurl, isEmailValid, isURLValid, exists, captcha, ex_1;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+    var errors, _a, email, description, bannerurl, sitename, siteurl, isretro, isVintage, _b, isEmailValid, isURLValid, exists, captcha, ex_1;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
             case 0:
                 errors = [];
                 if (!!req.recaptcha.error) {
                     errors.push("Invalid captcha!");
                 }
-                _a = req.body, email = _a.email, description = _a.description, bannerurl = _a.bannerurl, sitename = _a.sitename, siteurl = _a.siteurl;
+                _a = req.body, email = _a.email, description = _a.description, bannerurl = _a.bannerurl, sitename = _a.sitename, siteurl = _a.siteurl, isretro = _a.isretro;
+                isVintage = isretro === "on";
                 if (!email) {
                     errors.push("The email is required.");
+                }
+                _b = bannerurl;
+                if (!_b) return [3, 2];
+                return [4, (0, helpers_1.isValidBanner)(bannerurl)];
+            case 1:
+                _b = !(_c.sent());
+                _c.label = 2;
+            case 2:
+                if (_b) {
+                    errors.push("The banner submitted isn't valid");
                 }
                 isEmailValid = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/gm.exec(email);
                 if (!isEmailValid) {
@@ -302,17 +314,17 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
                     errors.push("The site URL is mandatory.");
                 }
                 isURLValid = /(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gm.exec(siteurl);
-                if (!!isURLValid) return [3, 1];
+                if (!!isURLValid) return [3, 3];
                 errors.push("The website URL is invalid.");
-                return [3, 3];
-            case 1: return [4, (0, db_1.checkIfWebsiteExists)(siteurl)];
-            case 2:
-                exists = _b.sent();
+                return [3, 5];
+            case 3: return [4, (0, db_1.checkIfWebsiteExists)(siteurl)];
+            case 4:
+                exists = _c.sent();
                 if (!!exists) {
                     errors.push("This website has already been submitted.");
                 }
-                _b.label = 3;
-            case 3:
+                _c.label = 5;
+            case 5:
                 if (!!description && description.length > 256) {
                     errors.push("Description is too long, try to keep it under 256 characters");
                 }
@@ -328,27 +340,27 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
                     });
                     return [2];
                 }
-                _b.label = 4;
-            case 4:
-                _b.trys.push([4, 6, , 7]);
+                _c.label = 6;
+            case 6:
+                _c.trys.push([6, 8, , 9]);
                 return [4, (0, db_1.registerWebsiteRequest)({
                         description: description,
                         email: email,
                         name: sitename.trim(),
                         url: siteurl.trim(),
                         banner: bannerurl.trim(),
-                        isVintage: false,
+                        isVintage: isVintage,
                     })];
-            case 5:
-                _b.sent();
+            case 7:
+                _c.sent();
                 res.render("submit-website", { success: true });
-                return [3, 7];
-            case 6:
-                ex_1 = _b.sent();
+                return [3, 9];
+            case 8:
+                ex_1 = _c.sent();
                 console.log(ex_1);
                 res.sendStatus(500);
-                return [3, 7];
-            case 7: return [2];
+                return [3, 9];
+            case 9: return [2];
         }
     });
 }); });

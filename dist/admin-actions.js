@@ -44,14 +44,14 @@ function approveRequest(id) {
         var _this = this;
         return __generator(this, function (_a) {
             return [2, db.sequelize.transaction(function (t) { return __awaiter(_this, void 0, void 0, function () {
-                    var _a, description, email, name_1, url, banner, downloaded, ex_1;
+                    var _a, description, email, name_1, url, banner, isVintage, downloaded, ex_1;
                     return __generator(this, function (_b) {
                         switch (_b.label) {
                             case 0:
                                 _b.trys.push([0, 5, , 6]);
                                 return [4, db.getRequest(id, t)];
                             case 1:
-                                _a = _b.sent(), description = _a.description, email = _a.email, name_1 = _a.name, url = _a.url, banner = _a.banner;
+                                _a = _b.sent(), description = _a.description, email = _a.email, name_1 = _a.name, url = _a.url, banner = _a.banner, isVintage = _a.isVintage;
                                 return [4, (0, helpers_1.downloadBanner)(id, banner)];
                             case 2:
                                 downloaded = _b.sent();
@@ -62,7 +62,7 @@ function approveRequest(id) {
                                         name: name_1,
                                         url: url,
                                         banner: downloaded,
-                                        isVintage: false,
+                                        isVintage: isVintage,
                                     }, t)];
                             case 3:
                                 _b.sent();

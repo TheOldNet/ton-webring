@@ -36,10 +36,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.downloadBanner = exports.downloadFile = exports.getHost = void 0;
+exports.isValidBanner = exports.convertPng = exports.downloadBanner = exports.downloadFile = exports.getHost = void 0;
 var axios_1 = require("axios");
 var fs = require("fs");
 var path = require("path");
+var sharp = require("sharp");
 var config_1 = require("./config");
 function getHost() {
     return config_1.HOST;
@@ -88,3 +89,61 @@ function downloadBanner(id, fileUrl) {
     });
 }
 exports.downloadBanner = downloadBanner;
+function convertPng(buffer) {
+    return __awaiter(this, void 0, void 0, function () {
+        var img, metadata;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    img = sharp(buffer);
+                    return [4, img.metadata()];
+                case 1:
+                    metadata = _a.sent();
+                    if (metadata.format !== "png") {
+                        return [2, buffer];
+                    }
+                    return [2, img.toFormat(sharp.format.gif).toBuffer()];
+            }
+        });
+    });
+}
+exports.convertPng = convertPng;
+function isValidBanner(url) {
+    return __awaiter(this, void 0, void 0, function () {
+        var response, img, metadata, _1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 3, , 4]);
+                    return [4, (0, axios_1.default)({
+                            method: "GET",
+                            url: url,
+                            responseType: "arraybuffer",
+                        })];
+                case 1:
+                    response = _a.sent();
+                    if (response.status !== 200) {
+                        return [2, false];
+                    }
+                    img = sharp(response.data);
+                    return [4, img.metadata()];
+                case 2:
+                    metadata = _a.sent();
+                    if (metadata.format !== "jpeg" &&
+                        metadata.format !== "jpg" &&
+                        metadata.format !== "gif") {
+                        return [2, false];
+                    }
+                    if (metadata.width != 468 && metadata.height != 60) {
+                        return [2, false];
+                    }
+                    return [2, true];
+                case 3:
+                    _1 = _a.sent();
+                    return [2, false];
+                case 4: return [2];
+            }
+        });
+    });
+}
+exports.isValidBanner = isValidBanner;
