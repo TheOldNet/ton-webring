@@ -49,12 +49,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.moveFromYaml = exports.Requests = exports.Websites = exports.sequelize = void 0;
 var fs = require("fs");
-var yaml = require("yaml");
 var path = require("path");
 var sequelize_1 = require("sequelize");
+var yaml = require("yaml");
 var md5 = require("md5");
-var sequelize_2 = require("sequelize");
-var helpers_1 = require("./helpers");
 var websitesYaml = fs.readFileSync(path.join(__dirname, "..", "websites.yaml"), { encoding: "utf-8" });
 var ymlWebsites = yaml.parse(websitesYaml);
 var dataFolder = path.join(__dirname, "../data");
@@ -188,51 +186,13 @@ function moveFromYaml() {
     });
 }
 exports.moveFromYaml = moveFromYaml;
-function fixPng() {
-    var _a;
-    return __awaiter(this, void 0, void 0, function () {
-        var websites, _i, websites_1, w, website, data, newData, filename;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0: return [4, exports.Websites.findAll()];
-                case 1:
-                    websites = _b.sent();
-                    _i = 0, websites_1 = websites;
-                    _b.label = 2;
-                case 2:
-                    if (!(_i < websites_1.length)) return [3, 6];
-                    w = websites_1[_i];
-                    website = w.toJSON();
-                    if (!((_a = website.banner) === null || _a === void 0 ? void 0 : _a.endsWith(".png"))) return [3, 5];
-                    if (!fs.existsSync(path.join(__dirname, "../assets/banners", website.banner))) {
-                        return [3, 5];
-                    }
-                    data = fs.readFileSync(path.join(__dirname, "../assets/banners", website.banner));
-                    return [4, (0, helpers_1.convertPng)(data)];
-                case 3:
-                    newData = _b.sent();
-                    filename = website.id + ".gif";
-                    fs.writeFileSync(path.join(__dirname, "../assets/banners", filename), newData);
-                    website.banner = filename;
-                    return [4, exports.Websites.update(website, { where: { id: website.id } })];
-                case 4:
-                    _b.sent();
-                    _b.label = 5;
-                case 5:
-                    _i++;
-                    return [3, 2];
-                case 6: return [2];
-            }
-        });
-    });
-}
 function connect() {
     return __awaiter(this, void 0, void 0, function () {
         var error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 5, , 6]);
+                    _a.trys.push([0, 4, , 5]);
                     return [4, exports.sequelize.authenticate()];
                 case 1:
                     _a.sent();
@@ -242,16 +202,13 @@ function connect() {
                     return [4, moveFromYaml()];
                 case 3:
                     _a.sent();
-                    return [4, fixPng()];
-                case 4:
-                    _a.sent();
                     console.log("Connection has been established successfully.");
-                    return [3, 6];
-                case 5:
+                    return [3, 5];
+                case 4:
                     error_1 = _a.sent();
                     console.error("Unable to connect to the database:", error_1);
-                    return [3, 6];
-                case 6: return [2];
+                    return [3, 5];
+                case 5: return [2];
             }
         });
     });
@@ -334,7 +291,7 @@ function getRandomWebsite(currentId) {
                 case 0: return [4, exports.Websites.findAll({
                         where: {
                             id: (_a = {},
-                                _a[sequelize_2.Op.not] = currentId,
+                                _a[sequelize_1.Op.not] = currentId,
                                 _a),
                         },
                     })];
@@ -426,7 +383,7 @@ function getAllRequests() {
         var _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
-                case 0: return [4, exports.Requests.findAll({ where: { denied: (_a = {}, _a[sequelize_2.Op.not] = true, _a) } })];
+                case 0: return [4, exports.Requests.findAll({ where: { denied: (_a = {}, _a[sequelize_1.Op.not] = true, _a) } })];
                 case 1:
                     all = _b.sent();
                     return [2, all.map(function (o) { return o.toJSON(); })];

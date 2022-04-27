@@ -1,12 +1,10 @@
 import * as fs from "fs";
-
+import * as path from "path";
+import { DataTypes, Op, Sequelize, Transaction } from "sequelize";
 import * as yaml from "yaml";
 import { WebsiteAttributes, WebsiteRequest } from "./types";
-import * as path from "path";
-import { DataTypes, Sequelize, Transaction } from "sequelize";
+
 import md5 = require("md5");
-import { Op } from "sequelize";
-import { convertPng } from "./helpers";
 
 const websitesYaml = fs.readFileSync(
   path.join(__dirname, "..", "websites.yaml"),
@@ -141,45 +139,11 @@ export async function moveFromYaml() {
   }
 }
 
-async function fixPng() {
-  const websites = await Websites.findAll();
-
-  for (const w of websites) {
-    const website: WebsiteAttributes = w.toJSON();
-    if (website.banner?.endsWith(".png")) {
-      if (
-        !fs.existsSync(
-          path.join(__dirname, "../assets/banners", website.banner)
-        )
-      ) {
-        continue;
-      }
-      const data = fs.readFileSync(
-        path.join(__dirname, "../assets/banners", website.banner)
-      );
-
-      const newData = await convertPng(data);
-
-      const filename = website.id + ".gif";
-
-      fs.writeFileSync(
-        path.join(__dirname, "../assets/banners", filename),
-        newData
-      );
-
-      website.banner = filename;
-
-      await Websites.update(website, { where: { id: website.id } });
-    }
-  }
-}
-
 export async function connect() {
   try {
     await sequelize.authenticate();
     await sequelize.sync();
     await moveFromYaml();
-    await fixPng();
     console.log("Connection has been established successfully.");
   } catch (error) {
     console.error("Unable to connect to the database:", error);
