@@ -34,6 +34,7 @@ import {
   getWebsite,
   registerWebsiteRequest,
 } from "./db";
+import { isValidBanner } from "./helpers";
 import { isOldBrowser } from "./old-browser";
 import { generateWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
@@ -171,9 +172,9 @@ app.get("/widget/:website/navigate", async (req, res) => {
 
 // This is very rough, we should improve how we send the image
 app.get("/widget/:website/image", async (req, res) => {
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", 0);
+  // res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  // res.setHeader("Pragma", "no-cache");
+  // res.setHeader("Expires", 0);
 
   const id = req.params.website;
   const current = await getWebsite(id);
@@ -191,7 +192,7 @@ app.get("/widget/:website/image", async (req, res) => {
 
   fs.readFile(
     path.join(__dirname, "../assets/banners", website.banner),
-    (err, data) => {
+    async (err, data) => {
       if (err) {
         console.log("Got error: " + err.message, err);
         res.sendStatus(500);
@@ -218,10 +219,17 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
     errors.push("Invalid captcha!");
   }
 
-  const { email, description, bannerurl, sitename, siteurl } = req.body;
+  const { email, description, bannerurl, sitename, siteurl, isretro } =
+    req.body;
+
+  const isVintage = isretro === "on";
 
   if (!email) {
     errors.push("The email is required.");
+  }
+
+  if (bannerurl && !(await isValidBanner(bannerurl))) {
+    errors.push("The banner submitted isn't valid");
   }
 
   const isEmailValid =
@@ -279,7 +287,7 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
       name: sitename.trim(),
       url: siteurl.trim(),
       banner: bannerurl.trim(),
-      isVintage: false,
+      isVintage,
     });
 
     res.render("submit-website", { success: true });

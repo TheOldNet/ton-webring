@@ -34,10 +34,12 @@
         <input type="text" id="bannerurl" name="bannerurl" value="" placeholder="http://mysite.com/banner.gif" width="500" style="width: 500px"><br><br>
         <label for="description">Brief website description:</label><br>
         <input type="text" id="description" name="description" value="" placeholder="Your source for cool stuff" width="500" style="width: 500px"><br><br>
-        <br>
+        <input type="checkbox" id="isretro" name="isretro"/><label for="isretro">My website is compatible with Old Browsers*</label>
+        <br><br>
         @html.raw(model.captcha)<br>
         <input type="submit" value="Submit">
-      </form> 
+      </form>
+      <p><b>*</b> Compatibility with Old Browsers means any combination of browsers like <b>Netscape</b>, <b>Internet Explorer 1~5</b>, <b>Opera 1~4</b>, <b>NCSA Mosaic</b> and so on. Your website doesn't have to be compatible with all of them to qualify, but it should be compatible with at least a subset of them. Your website <b>does not have to be compatible</b> with old browsers to be a part of the webring.</p><br><br>
     }
 
     <a href="/">Back to HOME</a>

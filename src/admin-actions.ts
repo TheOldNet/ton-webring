@@ -4,10 +4,8 @@ import { downloadBanner } from "./helpers";
 export async function approveRequest(id: string) {
   return db.sequelize.transaction(async (t) => {
     try {
-      const { description, email, name, url, banner } = await db.getRequest(
-        id,
-        t
-      );
+      const { description, email, name, url, banner, isVintage } =
+        await db.getRequest(id, t);
 
       const downloaded = await downloadBanner(id, banner);
 
@@ -19,7 +17,7 @@ export async function approveRequest(id: string) {
           name,
           url,
           banner: downloaded,
-          isVintage: false,
+          isVintage,
         },
         t
       );

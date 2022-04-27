@@ -30,6 +30,7 @@
           <th>Description</th>
           <th>Email</th>
           <th width="470px">Banner</th>
+          <th>Is Retro</th>
           <th width="150px">Actions</th>
         </tr>
       </thead>
@@ -41,6 +42,13 @@
           <td>@request.description</td>
           <td><a href="mailto:@request.email">@request.email</a></td>
           <td><img src="@request.banner" alt="@request.name"></td>
+          <td>
+            @if (request.isVintage === true) {
+              <span>YES</span>
+            } else {
+              <span>NO</span>
+            }
+          </td>
           <td>
             <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateDeny(this);">
               <input type="hidden" name="id" value="@request.id" />
@@ -65,6 +73,7 @@
           <th>Description</th>
           <th>Email</th>
           <th width="470px">Banner</th>
+          <th>Is Retro</th>
           <th>Has Embed</th>
           <th width="210px">Actions</th>
         </tr>
@@ -77,6 +86,13 @@
           <td>@site.description</td>
           <td><a href="mailto:@site.email">@site.email</a></td>
           <td><img src="/assets/banners/@site.banner" alt="@site.name"></td>
+          <td>
+            @if (site.isVintage === true) {
+              <span>YES</span>
+            } else {
+              <span>NO</span>
+            }
+          </td>
           <td>
             @if (site.hasWidget === true) {
               <span>YES</span>
