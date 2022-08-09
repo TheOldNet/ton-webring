@@ -283,3 +283,13 @@ export async function confirmBanner(id: string, t?: Transaction) {
     { where: { id }, transaction: t, returning: true }
   );
 }
+
+export async function toggleRetro(id: string, t?: Transaction) {
+  const site = await Websites.findOne({ where: { id } });
+  const isVintage = site.getDataValue("isVintage");
+
+  return Websites.update(
+    { isVintage: !isVintage },
+    { where: { id }, transaction: t, returning: true }
+  );
+}

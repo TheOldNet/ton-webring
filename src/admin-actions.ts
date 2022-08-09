@@ -42,3 +42,7 @@ export async function removeWebsite(id: string) {
 export async function confirmBanner(id: string) {
   return db.confirmBanner(id);
 }
+
+export async function toggleRetro(id: string) {
+  return db.toggleRetro(id);
+}

@@ -16,6 +16,10 @@
       function validateConfirmBanner(form) {
         return confirm('Are you sure this website has the banner embedded?');
       }
+
+      function validateToggleRetro(form) {
+        return confirm('Are you sure you want to toggle if the site is retro?');
+      }
     </script>
 
     <h1>Admin</h1>
@@ -108,6 +112,10 @@
             <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateConfirmBanner(this);">
               <input type="hidden" name="id" value="@site.id" />
               <input type="submit" name="confirm_banner" value="Confirm embed" />
+            </form>
+            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateToggleRetro(this);">
+              <input type="hidden" name="id" value="@site.id" />
+              <input type="submit" name="toggle_retro" value="Toggle Retro" />
             </form>
           </th>
         </tr>

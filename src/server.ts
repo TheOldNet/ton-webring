@@ -11,6 +11,7 @@ import {
   confirmBanner,
   denyRequest,
   removeWebsite,
+  toggleRetro,
 } from "./admin-actions";
 import { authorization } from "./auth-middleware";
 import {
@@ -36,7 +37,7 @@ import {
 } from "./db";
 import { isValidBanner } from "./helpers";
 import { isOldBrowser } from "./old-browser";
-import { generateWidget } from "./widget";
+import { generateBannerWidget, generateTextOnlyWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
 import cookieParser = require("cookie-parser");
 
@@ -314,10 +315,12 @@ app.get("/widget", async (req, res) => {
     return;
   }
 
-  const generatedWidget = generateWidget(website);
+  const generatedBannerWidget = generateBannerWidget(website);
+  const generatedTextOnlyWidget = generateTextOnlyWidget(website);
 
   res.render("widget", {
-    generatedWidget,
+    generatedBannerWidget,
+    generatedTextOnlyWidget,
     website,
     websiteId,
   });
@@ -383,6 +386,10 @@ app.post("/admin_action", authorization, async (req, res) => {
 
   if (typeof body.confirm_banner === "string" && body.confirm_banner) {
     await confirmBanner(body.id);
+  }
+
+  if (typeof body.toggle_retro === "string" && body.toggle_retro) {
+    await toggleRetro(body.id);
   }
 
   return res.redirect("/admin");

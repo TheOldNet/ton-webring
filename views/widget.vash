@@ -16,16 +16,26 @@
       <hr/>
     }
 
-    @if (model.generatedWidget) {
-      <hr/>
-      <h2>TheOldNet Webring Widget for @model.website.name</h2>
+    <hr/>
+    <h2>TheOldNet Webring Widgets for @model.website.name</h2>
+
+    @if (model.generatedBannerWidget) {
+      <h3>Banner Widget</h3>
       <p>Copy this code and paste it on your website</p>
-      <textarea cols="130" rows="10">
-        @model.generatedWidget
-      </textarea>
+      <textarea cols="130" rows="10">@model.generatedBannerWidget</textarea>
       <br>
       <p>This is what the widget is going to look like:</p>
-      @html.raw(model.generatedWidget)
+      @html.raw(model.generatedBannerWidget)
+      <hr/>
+    }
+
+    @if (model.generatedTextOnlyWidget) {
+      <h3>Text Only Widget</h3>
+      <p>Copy this code and paste it on your website</p>
+      <textarea cols="130" rows="6">@model.generatedTextOnlyWidget</textarea>
+      <br>
+      <p>This is what the widget is going to look like:</p>
+      @html.raw(model.generatedTextOnlyWidget)
       <hr/>
     }
 
