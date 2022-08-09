@@ -16,10 +16,9 @@
       <hr/>
     }
 
-    <hr/>
-    <h2>TheOldNet Webring Widgets for @model.website.name</h2>
-
     @if (model.generatedBannerWidget) {
+      <hr/>
+      <h2>TheOldNet Webring Widgets for @model.website.name</h2>
       <h3>Banner Widget</h3>
       <p>Copy this code and paste it on your website</p>
       <textarea cols="130" rows="10">@model.generatedBannerWidget</textarea>
