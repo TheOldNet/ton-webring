@@ -365,7 +365,7 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
     });
 }); });
 app.get("/widget", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var websiteId, website, generatedWidget;
+    var websiteId, website, generatedBannerWidget, generatedTextOnlyWidget;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -383,9 +383,11 @@ app.get("/widget", function (req, res) { return __awaiter(void 0, void 0, void 0
                     });
                     return [2];
                 }
-                generatedWidget = (0, widget_1.generateWidget)(website);
+                generatedBannerWidget = (0, widget_1.generateBannerWidget)(website);
+                generatedTextOnlyWidget = (0, widget_1.generateTextOnlyWidget)(website);
                 res.render("widget", {
-                    generatedWidget: generatedWidget,
+                    generatedBannerWidget: generatedBannerWidget,
+                    generatedTextOnlyWidget: generatedTextOnlyWidget,
                     website: website,
                     websiteId: websiteId,
                 });
@@ -478,7 +480,13 @@ app.post("/admin_action", auth_middleware_1.authorization, function (req, res) {
             case 7:
                 _a.sent();
                 _a.label = 8;
-            case 8: return [2, res.redirect("/admin")];
+            case 8:
+                if (!(typeof body.toggle_retro === "string" && body.toggle_retro)) return [3, 10];
+                return [4, (0, admin_actions_1.toggleRetro)(body.id)];
+            case 9:
+                _a.sent();
+                _a.label = 10;
+            case 10: return [2, res.redirect("/admin")];
         }
     });
 }); });

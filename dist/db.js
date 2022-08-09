@@ -47,7 +47,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.moveFromYaml = exports.Requests = exports.Websites = exports.sequelize = void 0;
+exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.moveFromYaml = exports.Requests = exports.Websites = exports.sequelize = void 0;
 var fs = require("fs");
 var path = require("path");
 var sequelize_1 = require("sequelize");
@@ -438,3 +438,18 @@ function confirmBanner(id, t) {
     });
 }
 exports.confirmBanner = confirmBanner;
+function toggleRetro(id, t) {
+    return __awaiter(this, void 0, void 0, function () {
+        var site, isVintage;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, exports.Websites.findOne({ where: { id: id } })];
+                case 1:
+                    site = _a.sent();
+                    isVintage = site.getDataValue("isVintage");
+                    return [2, exports.Websites.update({ isVintage: !isVintage }, { where: { id: id }, transaction: t, returning: true })];
+            }
+        });
+    });
+}
+exports.toggleRetro = toggleRetro;

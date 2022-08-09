@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.approveRequest = void 0;
+exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.approveRequest = void 0;
 var db = require("./db");
 var helpers_1 = require("./helpers");
 function approveRequest(id) {
@@ -107,3 +107,11 @@ function confirmBanner(id) {
     });
 }
 exports.confirmBanner = confirmBanner;
+function toggleRetro(id) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            return [2, db.toggleRetro(id)];
+        });
+    });
+}
+exports.toggleRetro = toggleRetro;
