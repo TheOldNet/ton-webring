@@ -10,7 +10,7 @@
     "build": "rimraf dist/ && yarn tsc",
     "start:prod": "ENVIRONMENT=production node ./dist/server.js",
     "start:prod2": "ENVIRONMENT=production ts-node-dev ./src/server.ts",
-    "deploy": "git pull && pm2 stop server && yarn build && pm2 start server"
+    "deploy": "git pull && pm2 stop webring && yarn build && pm2 start webring"
   },
   "dependencies": {
     "axios": "^0.26.1",
