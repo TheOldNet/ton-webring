@@ -10,7 +10,7 @@
     "build": "rimraf dist/ && yarn tsc",
     "start:prod": "ENVIRONMENT=production node ./dist/server.js",
     "start:prod2": "ENVIRONMENT=production ts-node-dev ./src/server.ts",
-    "deploy": "git pull && pm2 stop webring && yarn build && pm2 start webring"
+    "deploy": "git pull && pm2 stop webring && pm2 start webring"
   },
   "dependencies": {
     "axios": "^0.26.1",
@@ -49,7 +49,7 @@
     "@types/sharp": "^0.30.2",
     "@types/uglify-js": "^3.13.2",
     "@types/yaml": "^1.9.7",
-    "ts-node-dev": "^1.1.8",
-    "typescript": "^4.6.3"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^4.7.4"
   }
 }
