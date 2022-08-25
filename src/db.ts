@@ -158,9 +158,12 @@ export async function getWebsite(id: string): Promise<WebsiteAttributes> {
 export async function getRequest(
   id: string,
   t?: Transaction
-): Promise<WebsiteRequest> {
+): Promise<WebsiteRequest | undefined> {
   const result = await Requests.findOne({ where: { id }, transaction: t });
-  return (result as any).toJSON();
+  if (!result) {
+    return undefined;
+  }
+  return result.toJSON();
 }
 
 export async function getAllWebsites(): Promise<WebsiteAttributes[]> {
@@ -290,6 +293,13 @@ export async function toggleRetro(id: string, t?: Transaction) {
 
   return Websites.update(
     { isVintage: !isVintage },
+    { where: { id }, transaction: t, returning: true }
+  );
+}
+
+export async function clearBanner(id: string, t?: Transaction) {
+  return Requests.update(
+    { banner: null },
     { where: { id }, transaction: t, returning: true }
   );
 }

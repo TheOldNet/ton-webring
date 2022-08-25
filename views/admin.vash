@@ -9,6 +9,10 @@
         return confirm('Are you sure you want to approve this request?');
       }
 
+      function validateClearBanner(form) {
+        return confirm('Are you sure you want to clear this banner?');
+      }
+
       function validateRemove(form) {
         return confirm('Are you sure you want to remove this website from the Webring?');
       }
@@ -45,7 +49,13 @@
           <td>@request.name</td>
           <td>@request.description</td>
           <td><a href="mailto:@request.email">@request.email</a></td>
-          <td><img src="@request.banner" alt="@request.name"></td>
+          <td>
+            @if (request.banner) {
+              <img src="@request.banner" alt="@request.name">
+            } else {
+              <img src="/request-banner/@request.id" alt="@request.name">
+            }
+          </td>
           <td>
             @if (request.isVintage === true) {
               <span>YES</span>
@@ -61,6 +71,10 @@
             <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateApprove(this);">
               <input type="hidden" name="id" value="@request.id" />
               <input type="submit" name="approve" value="Approve" />
+            </form>
+            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateClearBanner(this);">
+              <input type="hidden" name="id" value="@request.id" />
+              <input type="submit" name="clear_banner" value="Clear Banner" />
             </form>
           </th>
         </tr>
@@ -88,7 +102,7 @@
           <td><a href="@site.url" target="_blank">@site.url</a></td>
           <td>@site.name</td>
           <td>@site.description</td>
-          <td><a href="mailto:@site.email">@site.email</a></td>
+          <td><a href="/mailto-form/@site.id">@site.email</a></td>
           <td><img src="/assets/banners/@site.banner" alt="@site.name"></td>
           <td>
             @if (site.isVintage === true) {

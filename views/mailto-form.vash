@@ -1,0 +1,37 @@
+@html.extend('layout', function () {
+  @html.append('content', function () {
+    <h1>Mail to the owner of @model.current.name:</h1>
+    <a href="@model.current.url" target="_blank">@model.current.url</a>
+    <form action="https://mail.google.com/mail/u/0/" method="get" enctype="text/plain">
+      <input type="hidden" name="to" value="@model.current.email" />
+      <input type="hidden" name="fs" value="1" />
+      <input type="hidden" name="tf" value="cm" />
+      <input type="hidden" name="source" value="mailto" />
+      <label for="su">Subject:
+        <input type="text" name="su" id="su" value="TheOldNet WebRing Approval" />
+      </label>
+      <br><br>
+      <label>Message:</label>
+      <br />
+      <textarea name="body" rows="15" cols="100">
+Hi, my name is Eric, and I help Richard from The Old Net with managing the WebRing.
+
+I am messaging to let you know you can add the WebRing widget to your site, the ID to do so is this one: @model.current.id
+
+Here's the link to get the banner that can be added to your site:
+http://webring.theoldnet.com/widget?websiteId=@model.current.id
+
+We ask everyone who is part of the WebRing to add the widget to their sites, so we can increase the visibility.
+
+Sites without the widget might be removed in the future.
+
+Thank you!
+        </textarea>
+        <br><br>
+        <input type="submit" name="submit" value="Send" />
+        <input type="reset" name="reset" value="Clear Form" />
+    </form>
+
+    <a href="/">Back to HOME</a>
+  })
+})

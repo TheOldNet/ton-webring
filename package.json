@@ -15,6 +15,7 @@
   "dependencies": {
     "axios": "^0.26.1",
     "body-parser": "^1.20.0",
+    "canvas": "^2.9.3",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
@@ -26,7 +27,7 @@
     "node-fetch": "^3.2.3",
     "rimraf": "^3.0.2",
     "sequelize": "^6.19.0",
-    "sharp": "^0.30.4",
+    "sharp": "^0.30.7",
     "sqlite3": "^5.0.2",
     "uglify-js": "^3.15.4",
     "vash": "^0.13.0",

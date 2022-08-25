@@ -8,12 +8,14 @@ import * as path from "path";
 import * as UglifyJs from "uglify-js";
 import {
   approveRequest,
+  clearBanner,
   confirmBanner,
   denyRequest,
   removeWebsite,
   toggleRetro,
 } from "./admin-actions";
 import { authorization } from "./auth-middleware";
+import { generateBanner } from "./banner";
 import {
   ADMIN_PASSWORD,
   ADMIN_USERNAME,
@@ -32,6 +34,7 @@ import {
   getPreviousWebsite,
   getRandomSiteList,
   getRandomWebsite,
+  getRequest,
   getWebsite,
   registerWebsiteRequest,
 } from "./db";
@@ -206,6 +209,21 @@ app.get("/widget/:website/image", async (req, res) => {
   );
 });
 
+app.get("/request-banner/:website", async (req, res) => {
+  const id = req.params.website;
+  const current = await getRequest(id);
+
+  if (!current) {
+    res.status(404);
+    res.send("no image");
+    return;
+  }
+
+  const bn = await generateBanner(current);
+  res.type("gif");
+  res.send(bn);
+});
+
 /**
  * Pages
  */
@@ -369,6 +387,12 @@ app.get("/admin", authorization, async (_, res) => {
   return res.render("admin", { requests, current });
 });
 
+app.get("/mailto-form/:website", authorization, async (req, res) => {
+  const id = req.params.website;
+  const current = await getWebsite(id);
+  return res.render("mailto-form", { current });
+});
+
 app.post("/admin_action", authorization, async (req, res) => {
   const { body } = req;
 
@@ -390,6 +414,10 @@ app.post("/admin_action", authorization, async (req, res) => {
 
   if (typeof body.toggle_retro === "string" && body.toggle_retro) {
     await toggleRetro(body.id);
+  }
+
+  if (typeof body.clear_banner === "string" && body.clear_banner) {
+    await clearBanner(body.id);
   }
 
   return res.redirect("/admin");

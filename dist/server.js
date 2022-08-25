@@ -46,6 +46,7 @@ var path = require("path");
 var UglifyJs = require("uglify-js");
 var admin_actions_1 = require("./admin-actions");
 var auth_middleware_1 = require("./auth-middleware");
+var banner_1 = require("./banner");
 var config_1 = require("./config");
 var db_1 = require("./db");
 var helpers_1 = require("./helpers");
@@ -276,6 +277,29 @@ app.get("/widget/:website/image", function (req, res) { return __awaiter(void 0,
         }
     });
 }); });
+app.get("/request-banner/:website", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, current, bn;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, (0, db_1.getRequest)(id)];
+            case 1:
+                current = _a.sent();
+                if (!current) {
+                    res.status(404);
+                    res.send("no image");
+                    return [2];
+                }
+                return [4, (0, banner_1.generateBanner)(current)];
+            case 2:
+                bn = _a.sent();
+                res.type("gif");
+                res.send(bn);
+                return [2];
+        }
+    });
+}); });
 app.get("/submit", recaptcha.middleware.render, function (_, res) {
     res.render("submit-website", { captcha: res.recaptcha });
 });
@@ -451,6 +475,19 @@ app.get("/admin", auth_middleware_1.authorization, function (_, res) { return __
         }
     });
 }); });
+app.get("/mailto-form/:website", auth_middleware_1.authorization, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, current;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, (0, db_1.getWebsite)(id)];
+            case 1:
+                current = _a.sent();
+                return [2, res.render("mailto-form", { current: current })];
+        }
+    });
+}); });
 app.post("/admin_action", auth_middleware_1.authorization, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var body;
     return __generator(this, function (_a) {
@@ -486,7 +523,13 @@ app.post("/admin_action", auth_middleware_1.authorization, function (req, res) {
             case 9:
                 _a.sent();
                 _a.label = 10;
-            case 10: return [2, res.redirect("/admin")];
+            case 10:
+                if (!(typeof body.clear_banner === "string" && body.clear_banner)) return [3, 12];
+                return [4, (0, admin_actions_1.clearBanner)(body.id)];
+            case 11:
+                _a.sent();
+                _a.label = 12;
+            case 12: return [2, res.redirect("/admin")];
         }
     });
 }); });

@@ -36,52 +36,79 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isValidBanner = exports.convertPng = exports.downloadBanner = exports.downloadFile = exports.getHost = void 0;
+exports.isValidBanner = exports.convertPng = exports.downloadBanner = exports.downloadFile = exports.saveImage = exports.getHost = void 0;
 var axios_1 = require("axios");
 var fs = require("fs");
 var path = require("path");
 var sharp = require("sharp");
+var banner_1 = require("./banner");
 var config_1 = require("./config");
 function getHost() {
     return config_1.HOST;
 }
 exports.getHost = getHost;
-function downloadFile(fileUrl, outputLocationPath) {
+function saveImage(buff, path) {
     return __awaiter(this, void 0, void 0, function () {
-        var response;
+        return __generator(this, function (_a) {
+            return [2, new Promise(function (resolve, reject) {
+                    fs.writeFile(path, buff, {}, function (err) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        resolve(null);
+                    });
+                })];
+        });
+    });
+}
+exports.saveImage = saveImage;
+function downloadFile(fileUrl) {
+    return __awaiter(this, void 0, void 0, function () {
+        var response, buffer, sImage, metadata;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, (0, axios_1.default)({
                         method: "GET",
                         url: fileUrl,
-                        responseType: "stream",
+                        responseType: "arraybuffer",
                     })];
                 case 1:
                     response = _a.sent();
-                    return [2, new Promise(function (resolve) {
-                            var w = response.data.pipe(fs.createWriteStream(outputLocationPath));
-                            w.on("finish", function () {
-                                resolve(true);
-                            });
-                        })];
+                    buffer = Buffer.from(response.data, "binary");
+                    sImage = sharp(buffer);
+                    return [4, sImage.metadata()];
+                case 2:
+                    metadata = _a.sent();
+                    if (metadata.format === "gif") {
+                        return [2, buffer];
+                    }
+                    return [2, sImage.gif().toBuffer()];
             }
         });
     });
 }
 exports.downloadFile = downloadFile;
-function downloadBanner(id, fileUrl) {
+function downloadBanner(request) {
     return __awaiter(this, void 0, void 0, function () {
-        var filename, savePath;
+        var filename, buffer, savePath;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    if (!fileUrl) {
-                        return [2, undefined];
-                    }
-                    filename = id + path.extname(fileUrl);
-                    savePath = path.join(__dirname, "../assets/banners", filename);
-                    return [4, downloadFile(fileUrl, savePath)];
+                    filename = request.id + ".gif";
+                    if (!!request.banner) return [3, 2];
+                    return [4, (0, banner_1.generateBanner)(request)];
                 case 1:
+                    buffer = _a.sent();
+                    return [3, 4];
+                case 2: return [4, downloadFile(request.banner)];
+                case 3:
+                    buffer = _a.sent();
+                    _a.label = 4;
+                case 4:
+                    savePath = path.join(__dirname, "../assets/banners", filename);
+                    return [4, saveImage(buffer, savePath)];
+                case 5:
                     _a.sent();
                     return [2, filename];
             }

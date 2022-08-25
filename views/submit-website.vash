@@ -24,22 +24,26 @@
 
     @if (!model.success) {
       <form action="/submit" method="POST">
-        <label for="email">Your email address:</label><br>
+        <label for="email">Your email address <font color="red">*</font>:</label><br>
         <input type="text" id="email" name="email" value="" placeholder="you@domain.com" width="500" style="width: 500px"><br><br>
-        <label for="sitename">Website name:</label><br>
+        <label for="sitename">Website name <font color="red">*</font>:</label><br>
         <input type="text" id="sitename" name="sitename" value="" placeholder="My cool retro site" width="500" style="width: 500px"><br><br>
-        <label for="siteurl">Website URL:</label><br>
+        <label for="siteurl">Website URL <font color="red">*</font>:</label><br>
         <input type="text" id="siteurl" name="siteurl" value="" placeholder="http://my.coolsite.com" width="500" style="width: 500px"><br><br>
-        <label for="bannerurl">Banner Image URL (468x60 pixels, 256 colors, jpeg or gif):</label><br>
+        <label for="bannerurl">Banner Image URL (468x60 pixels, 256 colors, jpeg or gif)<sup>(1)</sup>:</label><br>
         <input type="text" id="bannerurl" name="bannerurl" value="" placeholder="http://mysite.com/banner.gif" width="500" style="width: 500px"><br><br>
-        <label for="description">Brief website description:</label><br>
+        <label for="description">Brief website description <font color="red">*</font>:</label><br>
         <input type="text" id="description" name="description" value="" placeholder="Your source for cool stuff" width="500" style="width: 500px"><br><br>
-        <input type="checkbox" id="isretro" name="isretro"/><label for="isretro">My website is compatible with Old Browsers*</label>
+        <input type="checkbox" id="isretro" name="isretro"/><label for="isretro">My website is compatible with Old Browsers<sup>(2)</sup></label>
         <br><br>
         @html.raw(model.captcha)<br>
         <input type="submit" value="Submit">
       </form>
-      <p><b>*</b> Compatibility with Old Browsers means any combination of browsers like <b>Netscape</b>, <b>Internet Explorer 1~5</b>, <b>Opera 1~4</b>, <b>NCSA Mosaic</b> and so on. Your website doesn't have to be compatible with all of them to qualify, but it should be compatible with at least a subset of them. Your website <b>does not have to be compatible</b> with old browsers to be a part of the webring.</p><br><br>
+      <ol>
+        <li>A banner isn't mandatory, if you submit a website without a banner, a default one will be generated for you in the following style:<br><img src="/assets/example-banner.gif" alt="Example" /></li>
+        <li>Compatibility with Old Browsers means any combination of browsers like <b>Netscape</b>, <b>Internet Explorer 1~5</b>, <b>Opera 1~4</b>, <b>NCSA Mosaic</b> and so on. Your website doesn't have to be compatible with all of them to qualify, but it should be compatible with at least a subset of them. Your website <b>does not have to be compatible</b> with old browsers to be a part of the webring.<br>Websites that may be HTML compatible with old browsers but use HTTPs do not count as compatible because they cannot load moder HTTPs sites. Sadly, that includes all Neocities sites.</li>
+      </ol>
+      <br><br>
     }
 
     <a href="/">Back to HOME</a>

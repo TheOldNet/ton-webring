@@ -4,10 +4,11 @@ import { downloadBanner } from "./helpers";
 export async function approveRequest(id: string) {
   return db.sequelize.transaction(async (t) => {
     try {
-      const { description, email, name, url, banner, isVintage } =
-        await db.getRequest(id, t);
+      const request = await db.getRequest(id, t);
 
-      const downloaded = await downloadBanner(id, banner);
+      const downloaded = await downloadBanner(request);
+
+      const { description, email, name, url, isVintage } = request;
 
       await db.addWebsite(
         {
@@ -45,4 +46,8 @@ export async function confirmBanner(id: string) {
 
 export async function toggleRetro(id: string) {
   return db.toggleRetro(id);
+}
+
+export async function clearBanner(id: string) {
+  return db.clearBanner(id);
 }

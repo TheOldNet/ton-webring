@@ -47,7 +47,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.moveFromYaml = exports.Requests = exports.Websites = exports.sequelize = void 0;
+exports.clearBanner = exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.moveFromYaml = exports.Requests = exports.Websites = exports.sequelize = void 0;
 var fs = require("fs");
 var path = require("path");
 var sequelize_1 = require("sequelize");
@@ -236,6 +236,9 @@ function getRequest(id, t) {
                 case 0: return [4, exports.Requests.findOne({ where: { id: id }, transaction: t })];
                 case 1:
                     result = _a.sent();
+                    if (!result) {
+                        return [2, undefined];
+                    }
                     return [2, result.toJSON()];
             }
         });
@@ -453,3 +456,11 @@ function toggleRetro(id, t) {
     });
 }
 exports.toggleRetro = toggleRetro;
+function clearBanner(id, t) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            return [2, exports.Requests.update({ banner: null }, { where: { id: id }, transaction: t, returning: true })];
+        });
+    });
+}
+exports.clearBanner = clearBanner;

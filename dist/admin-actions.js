@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.approveRequest = void 0;
+exports.clearBanner = exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.approveRequest = void 0;
 var db = require("./db");
 var helpers_1 = require("./helpers");
 function approveRequest(id) {
@@ -44,17 +44,18 @@ function approveRequest(id) {
         var _this = this;
         return __generator(this, function (_a) {
             return [2, db.sequelize.transaction(function (t) { return __awaiter(_this, void 0, void 0, function () {
-                    var _a, description, email, name_1, url, banner, isVintage, downloaded, ex_1;
-                    return __generator(this, function (_b) {
-                        switch (_b.label) {
+                    var request, downloaded, description, email, name_1, url, isVintage, ex_1;
+                    return __generator(this, function (_a) {
+                        switch (_a.label) {
                             case 0:
-                                _b.trys.push([0, 5, , 6]);
+                                _a.trys.push([0, 5, , 6]);
                                 return [4, db.getRequest(id, t)];
                             case 1:
-                                _a = _b.sent(), description = _a.description, email = _a.email, name_1 = _a.name, url = _a.url, banner = _a.banner, isVintage = _a.isVintage;
-                                return [4, (0, helpers_1.downloadBanner)(id, banner)];
+                                request = _a.sent();
+                                return [4, (0, helpers_1.downloadBanner)(request)];
                             case 2:
-                                downloaded = _b.sent();
+                                downloaded = _a.sent();
+                                description = request.description, email = request.email, name_1 = request.name, url = request.url, isVintage = request.isVintage;
                                 return [4, db.addWebsite({
                                         description: description,
                                         email: email,
@@ -65,13 +66,13 @@ function approveRequest(id) {
                                         isVintage: isVintage,
                                     }, t)];
                             case 3:
-                                _b.sent();
+                                _a.sent();
                                 return [4, db.removeRequest(id, t)];
                             case 4:
-                                _b.sent();
+                                _a.sent();
                                 return [3, 6];
                             case 5:
-                                ex_1 = _b.sent();
+                                ex_1 = _a.sent();
                                 console.error(ex_1);
                                 t.rollback();
                                 return [2];
@@ -115,3 +116,11 @@ function toggleRetro(id) {
     });
 }
 exports.toggleRetro = toggleRetro;
+function clearBanner(id) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            return [2, db.clearBanner(id)];
+        });
+    });
+}
+exports.clearBanner = clearBanner;
