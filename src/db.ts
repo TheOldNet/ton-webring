@@ -1,17 +1,16 @@
 import * as fs from "fs";
 import * as path from "path";
-import { DataTypes, Op, Sequelize, Transaction } from "sequelize";
-import * as yaml from "yaml";
-import { WebsiteAttributes, WebsiteRequest } from "./types";
+import { DataTypes, Op, Sequelize, Transaction, WhereOptions } from "sequelize";
+import {
+  WebsiteAttributes,
+  WebsiteCreator,
+  WebsiteModel,
+  WebsiteRequestAttributes,
+  WebsiteRequestCreator,
+  WebsiteRequestModel,
+} from "./types";
 
 import md5 = require("md5");
-
-const websitesYaml = fs.readFileSync(
-  path.join(__dirname, "..", "websites.yaml"),
-  { encoding: "utf-8" }
-);
-
-const ymlWebsites: WebsiteAttributes[] = yaml.parse(websitesYaml);
 
 const dataFolder = path.join(__dirname, "../data");
 
@@ -25,7 +24,7 @@ export const sequelize = new Sequelize({
   logging: false,
 });
 
-export const Websites = sequelize.define(
+export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
   "websites",
   {
     id: {
@@ -74,7 +73,10 @@ export const Websites = sequelize.define(
   }
 );
 
-export const Requests = sequelize.define("requests", {
+export const Requests = sequelize.define<
+  WebsiteRequestModel,
+  WebsiteRequestCreator
+>("requests", {
   id: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -112,53 +114,35 @@ export const Requests = sequelize.define("requests", {
   },
 });
 
-/**
- * This is temporary
- * @returns void
- */
-export async function moveFromYaml() {
-  const webSitesCount = await Websites.count();
-
-  if (webSitesCount > 0) {
-    return;
-  }
-
-  for (const site of ymlWebsites) {
-    const id = md5(site.url);
-    const order: number = (await Websites.max("order")) || 0;
-
-    await Websites.create({
-      id,
-      name: site.name,
-      url: site.url,
-      banner: site.banner,
-      description: site.description,
-      email: site.email,
-      order: order + 1,
-    });
-  }
-}
-
 export async function connect() {
   try {
     await sequelize.authenticate();
     await sequelize.sync();
-    await moveFromYaml();
     console.log("Connection has been established successfully.");
   } catch (error) {
     console.error("Unable to connect to the database:", error);
   }
 }
 
+function whereIsVintage<T extends { isVintage: boolean }>(
+  isVintage: boolean,
+  where: WhereOptions<T>
+) {
+  if (isVintage === true) {
+    return { ...where, isVintage };
+  }
+  return where;
+}
+
 export async function getWebsite(id: string): Promise<WebsiteAttributes> {
   const result = await Websites.findOne({ where: { id } });
-  return (result as any).toJSON();
+  return result.toJSON();
 }
 
 export async function getRequest(
   id: string,
   t?: Transaction
-): Promise<WebsiteRequest | undefined> {
+): Promise<WebsiteRequestAttributes | undefined> {
   const result = await Requests.findOne({ where: { id }, transaction: t });
   if (!result) {
     return undefined;
@@ -166,83 +150,98 @@ export async function getRequest(
   return result.toJSON();
 }
 
-export async function getAllWebsites(): Promise<WebsiteAttributes[]> {
-  const result = await Websites.findAll();
+export async function getAllWebsites(
+  isVintage: boolean = undefined
+): Promise<WebsiteAttributes[]> {
+  const result = await Websites.findAll({
+    where: whereIsVintage(isVintage, {}),
+  });
   return result.map((o: any) => o.toJSON());
 }
 
-// Find a more efficient way of doing this when the number of sites
-// reaches a more significant quantity
 export async function getRandomSiteList(
+  isVintage: boolean = undefined,
   total: number = 5
 ): Promise<WebsiteAttributes[]> {
-  const websites = await getAllWebsites();
-  const indexes = new Array<number>(total);
-  const len = websites.length;
-  if (total > len)
-    throw new RangeError("getRandomSites: more elements taken than available");
-
-  while (total > 0) {
-    const index = Math.floor(Math.random() * len);
-    if (!indexes.includes(index)) {
-      indexes[--total] = index;
-    }
-  }
-
-  return indexes.map((i) => websites[i]);
+  const result = await Websites.findAll({
+    where: whereIsVintage(isVintage, {}),
+    order: [Sequelize.literal("RANDOM()")],
+    limit: total,
+  });
+  return result.map((o) => o.toJSON());
 }
 
 // Find a more efficient way of doing this when the number of sites
 // reaches a more significant quantity
 export async function getRandomWebsite(
+  isVintage: boolean = undefined,
   currentId: string = ""
 ): Promise<WebsiteAttributes> {
-  const filtered = (
-    await Websites.findAll({
-      where: {
-        id: {
-          [Op.not]: currentId,
-        },
+  let random = await Websites.findOne({
+    order: [Sequelize.literal("RANDOM()")],
+    where: whereIsVintage(isVintage, {
+      id: {
+        [Op.not]: currentId,
       },
-    })
-  ).map((o: any) => o.toJSON());
+    }),
+  });
 
-  const index = Math.floor(Math.random() * filtered.length);
-  return filtered[index];
+  return random.toJSON();
 }
 
-// Find a more efficient way of doing this when the number of sites
-// reaches a more significant quantity
-export async function getNextWebsite(id: string) {
-  const websites = (await Websites.findAll({ order: [["id", "ASC"]] })).map(
-    (o: any) => o.toJSON() as WebsiteAttributes
-  );
+export async function getNextWebsite(
+  id: string,
+  isVintage: boolean = undefined
+): Promise<WebsiteAttributes> {
+  const current = await getWebsite(id);
+  const max: number = await Websites.max("order");
 
-  const index = websites.findIndex((w) => w.id === id);
-  let next = index + 1;
-  if (next >= websites.length) {
-    next = 0;
+  let nextOrder = current.order >= max ? 0 : current.order + 1;
+
+  let next: WebsiteModel;
+  while (
+    !(next = await Websites.findOne({
+      where: whereIsVintage(isVintage, { order: nextOrder }),
+    }))
+  ) {
+    nextOrder++;
+    if (nextOrder > max) {
+      nextOrder = 0;
+    }
   }
 
-  return websites[next];
+  return next.toJSON();
 }
 
-// Find a more efficient way of doing this when the number of sites
-// reaches a more significant quantity
-export async function getPreviousWebsite(id: string) {
-  const websites = (await Websites.findAll({ order: [["id", "ASC"]] })).map(
-    (o: any) => o.toJSON() as WebsiteAttributes
-  );
-  const index = websites.findIndex((w) => w.id === id);
-  let previous = index - 1;
-  if (previous < 0) {
-    previous = websites.length - 1;
+export async function getPreviousWebsite(
+  id: string,
+  isVintage: boolean = undefined
+): Promise<WebsiteAttributes> {
+  const current = await getWebsite(id);
+
+  const min: number = await Websites.min("order");
+  const max: number = await Websites.max("order");
+
+  let previousOrder = current.order < min ? max : current.order - 1;
+
+  let previous: WebsiteModel;
+  while (
+    !(previous = await Websites.findOne({
+      where: whereIsVintage(isVintage, { order: previousOrder }),
+    }))
+  ) {
+    previousOrder--;
+    if (previousOrder < min) {
+      previousOrder = max;
+    }
   }
 
-  return websites[previous];
+  return previous.toJSON();
 }
 
-export async function registerWebsiteRequest(data: Omit<WebsiteRequest, "id">) {
+export async function registerWebsiteRequest(
+  data: Omit<WebsiteRequestAttributes, "id">
+) {
   const id = md5(data.url);
   await Requests.create({ id, ...data });
 }
@@ -257,7 +256,7 @@ export async function checkIfWebsiteExists(url: string) {
 
 export async function getAllRequests() {
   const all = await Requests.findAll({ where: { denied: { [Op.not]: true } } });
-  return all.map((o: any) => o.toJSON() as WebsiteRequest);
+  return all.map((o) => o.toJSON() as WebsiteRequestAttributes);
 }
 
 export async function addWebsite(website: WebsiteAttributes, t?: Transaction) {
@@ -293,7 +292,7 @@ export async function toggleRetro(id: string, t?: Transaction) {
 
   return Websites.update(
     { isVintage: !isVintage },
-    { where: { id }, transaction: t, returning: true }
+    { where: { id }, transaction: t }
   );
 }
 

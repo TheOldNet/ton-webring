@@ -48,14 +48,15 @@ var admin_actions_1 = require("./admin-actions");
 var auth_middleware_1 = require("./auth-middleware");
 var banner_1 = require("./banner");
 var config_1 = require("./config");
-var db_1 = require("./db");
+var db = require("./db");
 var helpers_1 = require("./helpers");
 var old_browser_1 = require("./old-browser");
 var widget_1 = require("./widget");
 var widget_cache_1 = require("./widget-cache");
 var cookieParser = require("cookie-parser");
+var retro_middleware_1 = require("./retro-middleware");
 var app = express();
-(0, db_1.connect)();
+db.connect();
 var recaptcha = new express_recaptcha_1.RecaptchaV2(config_1.RECAPTCHA_SITE_KEY, config_1.RECAPTCHA_SECRET_KEY, {
     callback: "cb",
 });
@@ -65,6 +66,7 @@ app.set("view engine", "vash");
 app.set("etag", false);
 app.use(useragent.express());
 app.use(cookieParser());
+app.use(retro_middleware_1.retroMiddleware);
 app.use("/assets", express.static("assets"));
 app.get("/member/:website/next/navigate", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var website, result;
@@ -72,7 +74,7 @@ app.get("/member/:website/next/navigate", function (req, res) { return __awaiter
         switch (_a.label) {
             case 0:
                 website = req.params.website;
-                return [4, (0, db_1.getNextWebsite)(website)];
+                return [4, db.getNextWebsite(website, req.isOldBrowser)];
             case 1:
                 result = _a.sent();
                 res.redirect(result.url);
@@ -86,7 +88,7 @@ app.get("/member/:website/previous/navigate", function (req, res) { return __awa
         switch (_a.label) {
             case 0:
                 website = req.params.website;
-                return [4, (0, db_1.getPreviousWebsite)(website)];
+                return [4, db.getPreviousWebsite(website, req.isOldBrowser)];
             case 1:
                 result = _a.sent();
                 res.redirect(result.url);
@@ -100,7 +102,7 @@ app.get("/member/:website/random/navigate", function (req, res) { return __await
         switch (_a.label) {
             case 0:
                 website = req.params.website;
-                return [4, (0, db_1.getRandomWebsite)(website)];
+                return [4, db.getRandomWebsite(req.isOldBrowser, website)];
             case 1:
                 random = _a.sent();
                 res.redirect(random.url);
@@ -114,7 +116,7 @@ app.get("/api/member/:website/next", function (req, res) { return __awaiter(void
         switch (_a.label) {
             case 0:
                 website = req.params.website;
-                return [4, (0, db_1.getNextWebsite)(website)];
+                return [4, db.getNextWebsite(website, req.isOldBrowser)];
             case 1:
                 result = _a.sent();
                 res.send(result);
@@ -128,7 +130,7 @@ app.get("/api/member/:website/previous", function (req, res) { return __awaiter(
         switch (_a.label) {
             case 0:
                 website = req.params.website;
-                return [4, (0, db_1.getPreviousWebsite)(website)];
+                return [4, db.getPreviousWebsite(website, req.isOldBrowser)];
             case 1:
                 result = _a.sent();
                 res.send(result);
@@ -142,7 +144,7 @@ app.get("/api/member/:website/random", function (req, res) { return __awaiter(vo
         switch (_a.label) {
             case 0:
                 website = req.params.website;
-                return [4, (0, db_1.getRandomWebsite)(website)];
+                return [4, db.getRandomWebsite(req.isOldBrowser, website)];
             case 1:
                 random = _a.sent();
                 res.send(random);
@@ -150,11 +152,11 @@ app.get("/api/member/:website/random", function (req, res) { return __awaiter(vo
         }
     });
 }); });
-app.get("/random", function (_, res) { return __awaiter(void 0, void 0, void 0, function () {
+app.get("/random", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var random;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4, (0, db_1.getRandomWebsite)()];
+            case 0: return [4, db.getRandomWebsite(req.isOldBrowser)];
             case 1:
                 random = _a.sent();
                 res.send(random);
@@ -162,11 +164,11 @@ app.get("/random", function (_, res) { return __awaiter(void 0, void 0, void 0, 
         }
     });
 }); });
-app.get("/random/navigate", function (_, res) { return __awaiter(void 0, void 0, void 0, function () {
+app.get("/random/navigate", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var random;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4, (0, db_1.getRandomWebsite)()];
+            case 0: return [4, db.getRandomWebsite(req.isOldBrowser)];
             case 1:
                 random = _a.sent();
                 res.redirect(random.url);
@@ -174,8 +176,8 @@ app.get("/random/navigate", function (_, res) { return __awaiter(void 0, void 0,
         }
     });
 }); });
-app.get("/random/list", function (_, res) {
-    var randomSites = (0, db_1.getRandomSiteList)(10);
+app.get("/random/list", function (req, res) {
+    var randomSites = db.getRandomSiteList(req.isOldBrowser, 10);
     res.send(randomSites);
 });
 app.get("/widget/widget.js", function (req, res) {
@@ -197,14 +199,14 @@ app.get("/widget/:website", function (req, res) { return __awaiter(void 0, void 
         switch (_a.label) {
             case 0:
                 id = req.params.website;
-                return [4, (0, db_1.getWebsite)(id)];
+                return [4, db.getWebsite(id)];
             case 1:
                 current = _a.sent();
-                (0, widget_cache_1.updateCacheForSite)(current);
-                return [4, (0, widget_cache_1.getCachedWidgetData)(current)];
+                (0, widget_cache_1.updateCacheForSite)(current, req.isOldBrowser);
+                return [4, (0, widget_cache_1.getCachedWidgetData)(current, req.isOldBrowser)];
             case 2:
                 target = _a.sent();
-                return [4, (0, db_1.getWebsite)(target.targetWebsiteId)];
+                return [4, db.getWebsite(target.targetWebsiteId)];
             case 3:
                 website = _a.sent();
                 if (!website.banner) {
@@ -225,13 +227,13 @@ app.get("/widget/:website/navigate", function (req, res) { return __awaiter(void
                 res.setHeader("Pragma", "no-cache");
                 res.setHeader("Expires", 0);
                 id = req.params.website;
-                return [4, (0, db_1.getWebsite)(id)];
+                return [4, db.getWebsite(id)];
             case 1:
                 current = _a.sent();
-                return [4, (0, widget_cache_1.getCachedWidgetData)(current)];
+                return [4, (0, widget_cache_1.getCachedWidgetData)(current, req.isOldBrowser)];
             case 2:
                 target = _a.sent();
-                return [4, (0, db_1.getWebsite)(target.targetWebsiteId)];
+                return [4, db.getWebsite(target.targetWebsiteId)];
             case 3:
                 website = _a.sent();
                 res.redirect(website.url);
@@ -245,16 +247,16 @@ app.get("/widget/:website/image", function (req, res) { return __awaiter(void 0,
         switch (_a.label) {
             case 0:
                 id = req.params.website;
-                return [4, (0, db_1.getWebsite)(id)];
+                return [4, db.getWebsite(id)];
             case 1:
                 current = _a.sent();
-                return [4, (0, widget_cache_1.updateCacheForSite)(current)];
+                return [4, (0, widget_cache_1.updateCacheForSite)(current, req.isOldBrowser)];
             case 2:
                 _a.sent();
-                return [4, (0, widget_cache_1.getCachedWidgetData)(current)];
+                return [4, (0, widget_cache_1.getCachedWidgetData)(current, req.isOldBrowser)];
             case 3:
                 target = _a.sent();
-                return [4, (0, db_1.getWebsite)(target.targetWebsiteId)];
+                return [4, db.getWebsite(target.targetWebsiteId)];
             case 4:
                 website = _a.sent();
                 if (!website.banner) {
@@ -283,7 +285,7 @@ app.get("/request-banner/:website", function (req, res) { return __awaiter(void 
         switch (_a.label) {
             case 0:
                 id = req.params.website;
-                return [4, (0, db_1.getRequest)(id)];
+                return [4, db.getRequest(id)];
             case 1:
                 current = _a.sent();
                 if (!current) {
@@ -341,7 +343,7 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
                 if (!!isURLValid) return [3, 3];
                 errors.push("The website URL is invalid.");
                 return [3, 5];
-            case 3: return [4, (0, db_1.checkIfWebsiteExists)(siteurl)];
+            case 3: return [4, db.checkIfWebsiteExists(siteurl)];
             case 4:
                 exists = _c.sent();
                 if (!!exists) {
@@ -367,7 +369,7 @@ app.post("/submit", recaptcha.middleware.verify, function (req, res) { return __
                 _c.label = 6;
             case 6:
                 _c.trys.push([6, 8, , 9]);
-                return [4, (0, db_1.registerWebsiteRequest)({
+                return [4, db.registerWebsiteRequest({
                         description: description,
                         email: email,
                         name: sitename.trim(),
@@ -398,7 +400,7 @@ app.get("/widget", function (req, res) { return __awaiter(void 0, void 0, void 0
                     res.render("widget", {});
                     return [2];
                 }
-                return [4, (0, db_1.getWebsite)(websiteId)];
+                return [4, db.getWebsite(websiteId)];
             case 1:
                 website = _a.sent();
                 if (!website) {
@@ -419,11 +421,11 @@ app.get("/widget", function (req, res) { return __awaiter(void 0, void 0, void 0
         }
     });
 }); });
-app.get("/", function (_, res) { return __awaiter(void 0, void 0, void 0, function () {
+app.get("/", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var randomSites;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4, (0, db_1.getRandomSiteList)(5)];
+            case 0: return [4, db.getRandomSiteList(req.isOldBrowser, 5)];
             case 1:
                 randomSites = _a.sent();
                 res.render("home", { randomSites: randomSites });
@@ -465,10 +467,10 @@ app.get("/admin", auth_middleware_1.authorization, function (_, res) { return __
     var requests, current;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4, (0, db_1.getAllRequests)()];
+            case 0: return [4, db.getAllRequests()];
             case 1:
                 requests = _a.sent();
-                return [4, (0, db_1.getAllWebsites)()];
+                return [4, db.getAllWebsites()];
             case 2:
                 current = _a.sent();
                 return [2, res.render("admin", { requests: requests, current: current })];
@@ -481,7 +483,7 @@ app.get("/mailto-form/:website", auth_middleware_1.authorization, function (req,
         switch (_a.label) {
             case 0:
                 id = req.params.website;
-                return [4, (0, db_1.getWebsite)(id)];
+                return [4, db.getWebsite(id)];
             case 1:
                 current = _a.sent();
                 return [2, res.render("mailto-form", { current: current })];
@@ -530,6 +532,96 @@ app.post("/admin_action", auth_middleware_1.authorization, function (req, res) {
                 _a.sent();
                 _a.label = 12;
             case 12: return [2, res.redirect("/admin")];
+        }
+    });
+}); });
+app.get("/frameset/:website/random", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, random;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, db.getRandomWebsite(req.isOldBrowser, id)];
+            case 1:
+                random = _a.sent();
+                res.redirect((0, helpers_1.getWebringUrl)("/frameset/".concat(random.id), random.url, random.isVintage));
+                return [2];
+        }
+    });
+}); });
+app.get("/frameset/:website/next", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, next;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, db.getNextWebsite(id, req.isOldBrowser)];
+            case 1:
+                next = _a.sent();
+                res.redirect((0, helpers_1.getWebringUrl)("/frameset/".concat(next.id), next.url, next.isVintage));
+                return [2];
+        }
+    });
+}); });
+app.get("/frameset/:website/previous", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, previous;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, db.getPreviousWebsite(id, req.isOldBrowser)];
+            case 1:
+                previous = _a.sent();
+                res.redirect((0, helpers_1.getWebringUrl)("/frameset/".concat(previous.id), previous.url, previous.isVintage));
+                return [2];
+        }
+    });
+}); });
+app.get("/frameset/:website/top", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, website;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, db.getWebsite(id)];
+            case 1:
+                website = _a.sent();
+                res.render("frameset-browser-top", {
+                    website: website,
+                });
+                return [2];
+        }
+    });
+}); });
+app.get("/frameset/:website", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var id, current, currentSiteUrl;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                id = req.params.website;
+                return [4, db.getWebsite(id)];
+            case 1:
+                current = _a.sent();
+                currentSiteUrl = !current.url.startsWith("http") && !current.url.startsWith("//")
+                    ? "//".concat(current.url)
+                    : current.url;
+                res.render("frameset-browser", {
+                    currentSiteId: current.id,
+                    currentSiteUrl: currentSiteUrl,
+                });
+                return [2];
+        }
+    });
+}); });
+app.get("/frameset", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var random;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4, db.getRandomWebsite(req.isOldBrowser)];
+            case 1:
+                random = _a.sent();
+                res.redirect((0, helpers_1.getWebringUrl)("/frameset/".concat(random.id), random.url, random.isVintage));
+                return [2];
         }
     });
 }); });

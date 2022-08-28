@@ -25,28 +25,17 @@ import {
   RECAPTCHA_SECRET_KEY,
   RECAPTCHA_SITE_KEY,
 } from "./config";
-import {
-  checkIfWebsiteExists,
-  connect,
-  getAllRequests,
-  getAllWebsites,
-  getNextWebsite,
-  getPreviousWebsite,
-  getRandomSiteList,
-  getRandomWebsite,
-  getRequest,
-  getWebsite,
-  registerWebsiteRequest,
-} from "./db";
-import { isValidBanner } from "./helpers";
+import * as db from "./db";
+import { getWebringUrl, isValidBanner } from "./helpers";
 import { isOldBrowser } from "./old-browser";
 import { generateBannerWidget, generateTextOnlyWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
 import cookieParser = require("cookie-parser");
+import { retroMiddleware } from "./retro-middleware";
 
 const app = express();
 
-connect();
+db.connect();
 
 const recaptcha = new RecaptchaV2(RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY, {
   callback: "cb",
@@ -58,6 +47,7 @@ app.set("view engine", "vash");
 app.set("etag", false);
 app.use(useragent.express());
 app.use(cookieParser());
+app.use(retroMiddleware);
 
 app.use("/assets", express.static("assets"));
 
@@ -67,19 +57,19 @@ app.use("/assets", express.static("assets"));
 
 app.get("/member/:website/next/navigate", async (req, res) => {
   const website = req.params.website;
-  const result = await getNextWebsite(website);
+  const result = await db.getNextWebsite(website, req.isOldBrowser);
   res.redirect(result.url);
 });
 
 app.get("/member/:website/previous/navigate", async (req, res) => {
   const website = req.params.website;
-  const result = await getPreviousWebsite(website);
+  const result = await db.getPreviousWebsite(website, req.isOldBrowser);
   res.redirect(result.url);
 });
 
 app.get("/member/:website/random/navigate", async (req, res) => {
   const website = req.params.website;
-  const random = await getRandomWebsite(website);
+  const random = await db.getRandomWebsite(req.isOldBrowser, website);
   res.redirect(random.url);
 });
 
@@ -89,19 +79,19 @@ app.get("/member/:website/random/navigate", async (req, res) => {
 
 app.get("/api/member/:website/next", async (req, res) => {
   const website = req.params.website;
-  const result = await getNextWebsite(website);
+  const result = await db.getNextWebsite(website, req.isOldBrowser);
   res.send(result);
 });
 
 app.get("/api/member/:website/previous", async (req, res) => {
   const website = req.params.website;
-  const result = await getPreviousWebsite(website);
+  const result = await db.getPreviousWebsite(website, req.isOldBrowser);
   res.send(result);
 });
 
 app.get("/api/member/:website/random", async (req, res) => {
   const website = req.params.website;
-  const random = await getRandomWebsite(website);
+  const random = await db.getRandomWebsite(req.isOldBrowser, website);
   res.send(random);
 });
 
@@ -109,18 +99,18 @@ app.get("/api/member/:website/random", async (req, res) => {
  * Internal API
  */
 
-app.get("/random", async (_, res) => {
-  const random = await getRandomWebsite();
+app.get("/random", async (req, res) => {
+  const random = await db.getRandomWebsite(req.isOldBrowser);
   res.send(random);
 });
 
-app.get("/random/navigate", async (_, res) => {
-  const random = await getRandomWebsite();
+app.get("/random/navigate", async (req, res) => {
+  const random = await db.getRandomWebsite(req.isOldBrowser);
   res.redirect(random.url);
 });
 
-app.get("/random/list", (_, res) => {
-  const randomSites = getRandomSiteList(10);
+app.get("/random/list", (req, res) => {
+  const randomSites = db.getRandomSiteList(req.isOldBrowser, 10);
   res.send(randomSites);
 });
 
@@ -143,14 +133,13 @@ app.get("/widget/widget.js", (req, res) => {
 
 app.get("/widget/:website", async (req, res) => {
   const id = req.params.website;
-  const current = await getWebsite(id);
-  updateCacheForSite(current);
+  const current = await db.getWebsite(id);
+  updateCacheForSite(current, req.isOldBrowser);
 
-  const target = await getCachedWidgetData(current);
-  const website = await getWebsite(target.targetWebsiteId);
+  const target = await getCachedWidgetData(current, req.isOldBrowser);
+  const website = await db.getWebsite(target.targetWebsiteId);
 
   if (!website.banner) {
-    // EVENTUALLY LOAD DEFAULT BANNER
     res.sendStatus(404);
     return;
   }
@@ -167,10 +156,10 @@ app.get("/widget/:website/navigate", async (req, res) => {
   res.setHeader("Expires", 0);
 
   const id = req.params.website;
-  const current = await getWebsite(id);
+  const current = await db.getWebsite(id);
 
-  const target = await getCachedWidgetData(current);
-  const website = await getWebsite(target.targetWebsiteId);
+  const target = await getCachedWidgetData(current, req.isOldBrowser);
+  const website = await db.getWebsite(target.targetWebsiteId);
   res.redirect(website.url);
 });
 
@@ -181,12 +170,12 @@ app.get("/widget/:website/image", async (req, res) => {
   // res.setHeader("Expires", 0);
 
   const id = req.params.website;
-  const current = await getWebsite(id);
-  await updateCacheForSite(current);
+  const current = await db.getWebsite(id);
+  await updateCacheForSite(current, req.isOldBrowser);
 
-  const target = await getCachedWidgetData(current);
+  const target = await getCachedWidgetData(current, req.isOldBrowser);
 
-  const website = await getWebsite(target.targetWebsiteId);
+  const website = await db.getWebsite(target.targetWebsiteId);
 
   if (!website.banner) {
     // EVENTUALLY LOAD DEFAULT BANNER
@@ -211,7 +200,7 @@ app.get("/widget/:website/image", async (req, res) => {
 
 app.get("/request-banner/:website", async (req, res) => {
   const id = req.params.website;
-  const current = await getRequest(id);
+  const current = await db.getRequest(id);
 
   if (!current) {
     res.status(404);
@@ -276,7 +265,7 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
   if (!isURLValid) {
     errors.push("The website URL is invalid.");
   } else {
-    const exists = await checkIfWebsiteExists(siteurl);
+    const exists = await db.checkIfWebsiteExists(siteurl);
     if (!!exists) {
       errors.push("This website has already been submitted.");
     }
@@ -300,7 +289,7 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
   }
 
   try {
-    await registerWebsiteRequest({
+    await db.registerWebsiteRequest({
       description,
       email,
       name: sitename.trim(),
@@ -324,7 +313,7 @@ app.get("/widget", async (req, res) => {
     return;
   }
 
-  const website = await getWebsite(websiteId);
+  const website = await db.getWebsite(websiteId);
 
   if (!website) {
     res.render("widget", {
@@ -344,8 +333,8 @@ app.get("/widget", async (req, res) => {
   });
 });
 
-app.get("/", async (_, res) => {
-  const randomSites = await getRandomSiteList(5);
+app.get("/", async (req, res) => {
+  const randomSites = await db.getRandomSiteList(req.isOldBrowser, 5);
 
   res.render("home", { randomSites });
 });
@@ -382,14 +371,14 @@ app.get("/logout", authorization, (_, res) => {
 });
 
 app.get("/admin", authorization, async (_, res) => {
-  const requests = await getAllRequests();
-  const current = await getAllWebsites();
+  const requests = await db.getAllRequests();
+  const current = await db.getAllWebsites();
   return res.render("admin", { requests, current });
 });
 
 app.get("/mailto-form/:website", authorization, async (req, res) => {
   const id = req.params.website;
-  const current = await getWebsite(id);
+  const current = await db.getWebsite(id);
   return res.render("mailto-form", { current });
 });
 
@@ -421,6 +410,57 @@ app.post("/admin_action", authorization, async (req, res) => {
   }
 
   return res.redirect("/admin");
+});
+
+app.get("/frameset/:website/random", async (req, res) => {
+  const id = req.params.website;
+  const random = await db.getRandomWebsite(req.isOldBrowser, id);
+  res.redirect(
+    getWebringUrl(`/frameset/${random.id}`, random.url, random.isVintage)
+  );
+});
+
+app.get("/frameset/:website/next", async (req, res) => {
+  const id = req.params.website;
+  const next = await db.getNextWebsite(id, req.isOldBrowser);
+  res.redirect(getWebringUrl(`/frameset/${next.id}`, next.url, next.isVintage));
+});
+
+app.get("/frameset/:website/previous", async (req, res) => {
+  const id = req.params.website;
+  const previous = await db.getPreviousWebsite(id, req.isOldBrowser);
+  res.redirect(
+    getWebringUrl(`/frameset/${previous.id}`, previous.url, previous.isVintage)
+  );
+});
+
+app.get("/frameset/:website/top", async (req, res) => {
+  const id = req.params.website;
+  const website = await db.getWebsite(id);
+  res.render("frameset-browser-top", {
+    website,
+  });
+});
+
+app.get("/frameset/:website", async (req, res) => {
+  const id = req.params.website;
+  const current = await db.getWebsite(id);
+  const currentSiteUrl =
+    !current.url.startsWith("http") && !current.url.startsWith("//")
+      ? `//${current.url}`
+      : current.url;
+
+  res.render("frameset-browser", {
+    currentSiteId: current.id,
+    currentSiteUrl,
+  });
+});
+
+app.get("/frameset", async (req, res) => {
+  const random = await db.getRandomWebsite(req.isOldBrowser);
+  res.redirect(
+    getWebringUrl(`/frameset/${random.id}`, random.url, random.isVintage)
+  );
 });
 
 app.listen(PORT, "0.0.0.0", () =>

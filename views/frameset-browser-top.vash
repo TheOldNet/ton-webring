@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <title>TheOldNet - Webring!</title>
+  </head>
+  <body bgcolor="#ffffff">
+    <center>
+        <table cellspacing="4" cellpadding="0" border="0">
+            <tr>
+                <td valign="middle">
+                    <font size="5" color="blue">The</font>
+                </td>
+                <td valign="middle">
+                    <font size="5" color="red">Old</font>
+                </td>
+                <td valign="middle">
+                    <font size="5" color="orange">Net</font>
+                </td>
+                <td valign="middle">
+                    <img src="/assets/webring-tiny.gif">
+                </td>
+            </tr>
+        </table>        
+        <font size="-1">
+        Currently browsing: <b>@model.website.url</b> - 
+        [<a href="/frameset/@model.website.id/previous" target="_parent">Previous site</a>] -
+        [<a href="/frameset/@model.website.id/random" target="_parent">Random site</a>] -
+        [<a href="/frameset/@model.website.id/next" target="_parent">Next site</a>]
+        </font>
+    </center>
+  </body>
+</html>

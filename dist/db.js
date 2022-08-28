@@ -47,14 +47,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clearBanner = exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.moveFromYaml = exports.Requests = exports.Websites = exports.sequelize = void 0;
+exports.clearBanner = exports.toggleRetro = exports.confirmBanner = exports.removeWebsite = exports.denyRequest = exports.removeRequest = exports.addWebsite = exports.getAllRequests = exports.checkIfWebsiteExists = exports.registerWebsiteRequest = exports.getPreviousWebsite = exports.getNextWebsite = exports.getRandomWebsite = exports.getRandomSiteList = exports.getAllWebsites = exports.getRequest = exports.getWebsite = exports.connect = exports.Requests = exports.Websites = exports.sequelize = void 0;
 var fs = require("fs");
 var path = require("path");
 var sequelize_1 = require("sequelize");
-var yaml = require("yaml");
 var md5 = require("md5");
-var websitesYaml = fs.readFileSync(path.join(__dirname, "..", "websites.yaml"), { encoding: "utf-8" });
-var ymlWebsites = yaml.parse(websitesYaml);
 var dataFolder = path.join(__dirname, "../data");
 if (!fs.existsSync(dataFolder)) {
     fs.mkdirSync(dataFolder, { recursive: true });
@@ -145,75 +142,37 @@ exports.Requests = exports.sequelize.define("requests", {
         defaultValue: false,
     },
 });
-function moveFromYaml() {
-    return __awaiter(this, void 0, void 0, function () {
-        var webSitesCount, _i, ymlWebsites_1, site, id, order;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, exports.Websites.count()];
-                case 1:
-                    webSitesCount = _a.sent();
-                    if (webSitesCount > 0) {
-                        return [2];
-                    }
-                    _i = 0, ymlWebsites_1 = ymlWebsites;
-                    _a.label = 2;
-                case 2:
-                    if (!(_i < ymlWebsites_1.length)) return [3, 6];
-                    site = ymlWebsites_1[_i];
-                    id = md5(site.url);
-                    return [4, exports.Websites.max("order")];
-                case 3:
-                    order = (_a.sent()) || 0;
-                    return [4, exports.Websites.create({
-                            id: id,
-                            name: site.name,
-                            url: site.url,
-                            banner: site.banner,
-                            description: site.description,
-                            email: site.email,
-                            order: order + 1,
-                        })];
-                case 4:
-                    _a.sent();
-                    _a.label = 5;
-                case 5:
-                    _i++;
-                    return [3, 2];
-                case 6: return [2];
-            }
-        });
-    });
-}
-exports.moveFromYaml = moveFromYaml;
 function connect() {
     return __awaiter(this, void 0, void 0, function () {
         var error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, 4, , 5]);
+                    _a.trys.push([0, 3, , 4]);
                     return [4, exports.sequelize.authenticate()];
                 case 1:
                     _a.sent();
                     return [4, exports.sequelize.sync()];
                 case 2:
                     _a.sent();
-                    return [4, moveFromYaml()];
-                case 3:
-                    _a.sent();
                     console.log("Connection has been established successfully.");
-                    return [3, 5];
-                case 4:
+                    return [3, 4];
+                case 3:
                     error_1 = _a.sent();
                     console.error("Unable to connect to the database:", error_1);
-                    return [3, 5];
-                case 5: return [2];
+                    return [3, 4];
+                case 4: return [2];
             }
         });
     });
 }
 exports.connect = connect;
+function whereIsVintage(isVintage, where) {
+    if (isVintage === true) {
+        return __assign(__assign({}, where), { isVintage: isVintage });
+    }
+    return where;
+}
 function getWebsite(id) {
     return __awaiter(this, void 0, void 0, function () {
         var result;
@@ -245,12 +204,15 @@ function getRequest(id, t) {
     });
 }
 exports.getRequest = getRequest;
-function getAllWebsites() {
+function getAllWebsites(isVintage) {
+    if (isVintage === void 0) { isVintage = undefined; }
     return __awaiter(this, void 0, void 0, function () {
         var result;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, exports.Websites.findAll()];
+                case 0: return [4, exports.Websites.findAll({
+                        where: whereIsVintage(isVintage, {}),
+                    })];
                 case 1:
                     result = _a.sent();
                     return [2, result.map(function (o) { return o.toJSON(); })];
@@ -259,87 +221,108 @@ function getAllWebsites() {
     });
 }
 exports.getAllWebsites = getAllWebsites;
-function getRandomSiteList(total) {
+function getRandomSiteList(isVintage, total) {
+    if (isVintage === void 0) { isVintage = undefined; }
     if (total === void 0) { total = 5; }
     return __awaiter(this, void 0, void 0, function () {
-        var websites, indexes, len, index;
+        var result;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, getAllWebsites()];
+                case 0: return [4, exports.Websites.findAll({
+                        where: whereIsVintage(isVintage, {}),
+                        order: [sequelize_1.Sequelize.literal("RANDOM()")],
+                        limit: total,
+                    })];
                 case 1:
-                    websites = _a.sent();
-                    indexes = new Array(total);
-                    len = websites.length;
-                    if (total > len)
-                        throw new RangeError("getRandomSites: more elements taken than available");
-                    while (total > 0) {
-                        index = Math.floor(Math.random() * len);
-                        if (!indexes.includes(index)) {
-                            indexes[--total] = index;
-                        }
-                    }
-                    return [2, indexes.map(function (i) { return websites[i]; })];
+                    result = _a.sent();
+                    return [2, result.map(function (o) { return o.toJSON(); })];
             }
         });
     });
 }
 exports.getRandomSiteList = getRandomSiteList;
-function getRandomWebsite(currentId) {
+function getRandomWebsite(isVintage, currentId) {
+    if (isVintage === void 0) { isVintage = undefined; }
     if (currentId === void 0) { currentId = ""; }
     return __awaiter(this, void 0, void 0, function () {
-        var filtered, index;
+        var random;
         var _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
-                case 0: return [4, exports.Websites.findAll({
-                        where: {
+                case 0: return [4, exports.Websites.findOne({
+                        order: [sequelize_1.Sequelize.literal("RANDOM()")],
+                        where: whereIsVintage(isVintage, {
                             id: (_a = {},
                                 _a[sequelize_1.Op.not] = currentId,
                                 _a),
-                        },
+                        }),
                     })];
                 case 1:
-                    filtered = (_b.sent()).map(function (o) { return o.toJSON(); });
-                    index = Math.floor(Math.random() * filtered.length);
-                    return [2, filtered[index]];
+                    random = _b.sent();
+                    return [2, random.toJSON()];
             }
         });
     });
 }
 exports.getRandomWebsite = getRandomWebsite;
-function getNextWebsite(id) {
+function getNextWebsite(id, isVintage) {
+    if (isVintage === void 0) { isVintage = undefined; }
     return __awaiter(this, void 0, void 0, function () {
-        var websites, index, next;
+        var current, max, nextOrder, next;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, exports.Websites.findAll({ order: [["id", "ASC"]] })];
+                case 0: return [4, getWebsite(id)];
                 case 1:
-                    websites = (_a.sent()).map(function (o) { return o.toJSON(); });
-                    index = websites.findIndex(function (w) { return w.id === id; });
-                    next = index + 1;
-                    if (next >= websites.length) {
-                        next = 0;
+                    current = _a.sent();
+                    return [4, exports.Websites.max("order")];
+                case 2:
+                    max = _a.sent();
+                    nextOrder = current.order >= max ? 0 : current.order + 1;
+                    _a.label = 3;
+                case 3: return [4, exports.Websites.findOne({
+                        where: whereIsVintage(isVintage, { order: nextOrder }),
+                    })];
+                case 4:
+                    if (!!(next = _a.sent())) return [3, 5];
+                    nextOrder++;
+                    if (nextOrder > max) {
+                        nextOrder = 0;
                     }
-                    return [2, websites[next]];
+                    return [3, 3];
+                case 5: return [2, next.toJSON()];
             }
         });
     });
 }
 exports.getNextWebsite = getNextWebsite;
-function getPreviousWebsite(id) {
+function getPreviousWebsite(id, isVintage) {
+    if (isVintage === void 0) { isVintage = undefined; }
     return __awaiter(this, void 0, void 0, function () {
-        var websites, index, previous;
+        var current, min, max, previousOrder, previous;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, exports.Websites.findAll({ order: [["id", "ASC"]] })];
+                case 0: return [4, getWebsite(id)];
                 case 1:
-                    websites = (_a.sent()).map(function (o) { return o.toJSON(); });
-                    index = websites.findIndex(function (w) { return w.id === id; });
-                    previous = index - 1;
-                    if (previous < 0) {
-                        previous = websites.length - 1;
+                    current = _a.sent();
+                    return [4, exports.Websites.min("order")];
+                case 2:
+                    min = _a.sent();
+                    return [4, exports.Websites.max("order")];
+                case 3:
+                    max = _a.sent();
+                    previousOrder = current.order < min ? max : current.order - 1;
+                    _a.label = 4;
+                case 4: return [4, exports.Websites.findOne({
+                        where: whereIsVintage(isVintage, { order: previousOrder }),
+                    })];
+                case 5:
+                    if (!!(previous = _a.sent())) return [3, 6];
+                    previousOrder--;
+                    if (previousOrder < min) {
+                        previousOrder = max;
                     }
-                    return [2, websites[previous]];
+                    return [3, 4];
+                case 6: return [2, previous.toJSON()];
             }
         });
     });
@@ -450,7 +433,7 @@ function toggleRetro(id, t) {
                 case 1:
                     site = _a.sent();
                     isVintage = site.getDataValue("isVintage");
-                    return [2, exports.Websites.update({ isVintage: !isVintage }, { where: { id: id }, transaction: t, returning: true })];
+                    return [2, exports.Websites.update({ isVintage: !isVintage }, { where: { id: id }, transaction: t })];
             }
         });
     });

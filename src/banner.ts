@@ -1,7 +1,7 @@
 // import * as fs from "fs";
 import axios from "axios";
 import { createCanvas, loadImage, registerFont } from "canvas";
-import { WebsiteRequest } from "./types";
+import { WebsiteRequestAttributes } from "./types";
 import sharp = require("sharp");
 registerFont(__dirname + "/../assets/fonts/Montserrat-Regular.ttf", {
   family: "Montserrat Regular",
@@ -62,7 +62,7 @@ function insertText(
   };
 }
 
-export async function generateBanner(website: WebsiteRequest) {
+export async function generateBanner(website: WebsiteRequestAttributes) {
   const width = 468;
   const height = 60;
 

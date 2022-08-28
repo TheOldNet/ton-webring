@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>TheOldNet - Webring!</title>
+  </head>
+
+
+<frameset rows = "80, *" frameborder="NO" border="0" noresize="noresize" scrolling="yes">
+  <frame src="/frameset/@model.currentSiteId/top" name="header" FRAMEBORDER="NO" MARGINHEIGHT="0" MARGINWIDTH="0" NORESIZE SCROLLING="NO" />
+  <frame src="@model.currentSiteUrl" FRAMEBORDER="NO" MARGINHEIGHT="0" MARGINWIDTH="0" NORESIZE SCROLLING="yes" />
+  <noframes> 
+    <body>Oh no... yoru browser doesn't support iframes!!! Now that's just rude...</body> 
+  </noframes> 
+</frameset>
+
+</html>

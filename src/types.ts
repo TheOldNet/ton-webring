@@ -1,3 +1,5 @@
+import { Model } from "sequelize/types";
+
 export type WebsiteAttributes = {
   id: string;
   name: string;
@@ -7,13 +9,17 @@ export type WebsiteAttributes = {
   description: string;
   isVintage: boolean;
   hasWidget?: boolean;
+  order?: number;
 };
+
+export type WebsiteCreator = WebsiteAttributes;
+export type WebsiteModel = Model<WebsiteAttributes, WebsiteCreator>;
 
 export type WidgetCreationRequest = {
   websiteId: string;
 };
 
-export type WebsiteRequest = {
+export type WebsiteRequestAttributes = {
   id: string;
   name: string;
   url: string;
@@ -23,3 +29,9 @@ export type WebsiteRequest = {
   isVintage: boolean;
   denied?: boolean;
 };
+
+export type WebsiteRequestCreator = WebsiteRequestAttributes;
+export type WebsiteRequestModel = Model<
+  WebsiteRequestAttributes,
+  WebsiteRequestCreator
+>;

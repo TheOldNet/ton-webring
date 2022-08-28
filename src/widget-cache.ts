@@ -9,25 +9,46 @@ type CacheData = {
   targetWebsiteId: string;
 };
 
-let cache: Record<string, CacheData> = {};
+let retroCache: Record<string, CacheData> = {};
+let modernCache: Record<string, CacheData> = {};
 
-export async function updateCacheForSite(website: WebsiteAttributes) {
-  let cachedSite = cache[website.id];
-  if (!!cachedSite && cachedSite.time.diffNow().as("hours") < 1) {
+export async function updateCacheForSite(
+  website: WebsiteAttributes,
+  isVintage: boolean
+) {
+  let cachedSite = isVintage ? retroCache[website.id] : modernCache[website.id];
+  if (!!cachedSite && cachedSite.time.diffNow().as("hours") < 2) {
     return;
   }
 
-  const random = await getRandomWebsite(website.id);
-  cachedSite = cache[website.id] = {
-    time: DateTime.local(),
-    targetWebsiteId: random.id,
-  };
+  const random = await getRandomWebsite(isVintage, website.id);
+  if (isVintage) {
+    cachedSite = retroCache[website.id] = {
+      time: DateTime.local(),
+      targetWebsiteId: random.id,
+    };
+  } else {
+    cachedSite = modernCache[website.id] = {
+      time: DateTime.local(),
+      targetWebsiteId: random.id,
+    };
+  }
 }
 
-export async function getCachedWidgetData(website: WebsiteAttributes) {
-  if (!cache[website.id]) {
-    await updateCacheForSite(website);
+export async function getCachedWidgetData(
+  website: WebsiteAttributes,
+  isVintage: boolean
+) {
+  if (
+    (isVintage && !retroCache[website.id]) ||
+    (!isVintage && !retroCache[website.id])
+  ) {
+    await updateCacheForSite(website, isVintage);
   }
 
-  return cache[website.id];
+  if (isVintage) {
+    return retroCache[website.id];
+  }
+
+  return modernCache[website.id];
 }

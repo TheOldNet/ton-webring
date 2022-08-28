@@ -4,11 +4,42 @@ import * as path from "path";
 import sharp = require("sharp");
 import { generateBanner } from "./banner";
 import { HOST } from "./config";
-import { WebsiteRequest } from "./types";
+import { WebsiteRequestAttributes } from "./types";
 
 // An actual domain
 export function getHost() {
   return HOST;
+}
+
+export function getWebringUrl(
+  path: string,
+  websiteUrl: string,
+  isRetro: boolean
+) {
+  const host = getHost();
+
+  let url = `${host}${path}`;
+
+  if (websiteUrl.startsWith("https:")) {
+    url = `https:` + url;
+  } else if (websiteUrl.startsWith("http:")) {
+    url = `http:` + url;
+  } else if (websiteUrl.startsWith("//") && isRetro) {
+    url = `http:` + url;
+  } else if (
+    /^[\w]+?/gim.exec(websiteUrl) &&
+    !websiteUrl.startsWith("//") &&
+    !websiteUrl.startsWith("http")
+  ) {
+    url = (isRetro ? "http:" : "https:") + url;
+  }
+
+  if (host.includes("192.168.1.") || host.includes("localhost:")) {
+    const begining = /^((.+)?\/\/)?/gim.exec(url);
+    url = url.replace("https", "http") + "?type=" + encodeURI(begining[0]);
+  }
+
+  return url;
 }
 
 export async function saveImage(buff: Buffer, path: string) {
@@ -42,7 +73,7 @@ export async function downloadFile(fileUrl: string): Promise<Buffer> {
   return sImage.gif().toBuffer();
 }
 
-export async function downloadBanner(request: WebsiteRequest) {
+export async function downloadBanner(request: WebsiteRequestAttributes) {
   const filename = request.id + ".gif";
   let buffer: Buffer;
   if (!request.banner) {

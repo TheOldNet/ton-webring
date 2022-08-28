@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isValidBanner = exports.convertPng = exports.downloadBanner = exports.downloadFile = exports.saveImage = exports.getHost = void 0;
+exports.isValidBanner = exports.convertPng = exports.downloadBanner = exports.downloadFile = exports.saveImage = exports.getWebringUrl = exports.getHost = void 0;
 var axios_1 = require("axios");
 var fs = require("fs");
 var path = require("path");
@@ -47,6 +47,30 @@ function getHost() {
     return config_1.HOST;
 }
 exports.getHost = getHost;
+function getWebringUrl(path, websiteUrl, isRetro) {
+    var host = getHost();
+    var url = "".concat(host).concat(path);
+    if (websiteUrl.startsWith("https:")) {
+        url = "https:" + url;
+    }
+    else if (websiteUrl.startsWith("http:")) {
+        url = "http:" + url;
+    }
+    else if (websiteUrl.startsWith("//") && isRetro) {
+        url = "http:" + url;
+    }
+    else if (/^[\w]+?/gim.exec(websiteUrl) &&
+        !websiteUrl.startsWith("//") &&
+        !websiteUrl.startsWith("http")) {
+        url = (isRetro ? "http:" : "https:") + url;
+    }
+    if (host.includes("192.168.1.") || host.includes("localhost:")) {
+        var begining = /^((.+)?\/\/)?/gim.exec(url);
+        url = url.replace("https", "http") + "?type=" + encodeURI(begining[0]);
+    }
+    return url;
+}
+exports.getWebringUrl = getWebringUrl;
 function saveImage(buff, path) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {

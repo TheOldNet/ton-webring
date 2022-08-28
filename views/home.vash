@@ -3,6 +3,26 @@
     <center>
       <a href="/submit">Submit a Website</a> | <a href="/widget">Generate a Widget for your Website</a>
       <br>
+      <h3>Browse the Webring using:</h3>
+      <table cellspacing="5" cellpadding="10" border="1" width="480" bgcolor="#DDDDDD">
+        <tbody>
+          <tr>
+            <td align="center">
+              <a href="/frameset">
+                <font color="blue">
+                  The
+                </font>
+                <font color="red">
+                  Frameset
+                </font>
+                <font color="blue">
+                  Browser
+                </font>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
       <h3>Some random Websites!</h3>
       <table cellspacing="5" cellpadding="5" border="1" width="480">
         <tbody>
