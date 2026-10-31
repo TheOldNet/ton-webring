@@ -100,7 +100,7 @@ app.get("/member/:website/random/navigate", async (req, res) => {
   const website = req.params.website;
   const random = await db.getRandomWebsite(req.isOldBrowser, website);
   res.redirect(
-    normalizeExternalUrl(random.url, { preferHttp: random.isVintage })
+    getWebringUrl(`/frameset/${random.id}`, random.url, random.isVintage)
   );
 });
 
