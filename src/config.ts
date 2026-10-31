@@ -4,8 +4,13 @@ import * as path from "path";
 const DEV_CONFIG = path.join(__dirname, "../conf-dev.env");
 const PROD_CONFIG = path.join(__dirname, "../conf-prod.env");
 
+// start:prod / start:prod2 set ENVIRONMENT=production (not always NODE_ENV).
+const isProd =
+  process.env.NODE_ENV === "production" ||
+  process.env.ENVIRONMENT === "production";
+
 const conf = dotenv.config({
-  path: process.env.NODE_ENV === "production" ? PROD_CONFIG : DEV_CONFIG,
+  path: isProd ? PROD_CONFIG : DEV_CONFIG,
 }).parsed;
 
 export const PORT = conf.PORT ? parseInt(conf.PORT) : 8007;
