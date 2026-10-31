@@ -11,6 +11,30 @@ export function getHost() {
   return HOST;
 }
 
+/**
+ * Ensure member/site URLs are absolute so href/redirect never treat
+ * "pavelsoftware.neocities.org" as a path on webring.theoldnet.com.
+ */
+export function normalizeExternalUrl(
+  raw: string,
+  opts?: { preferHttp?: boolean }
+): string {
+  let url = String(raw || "").trim();
+  if (!url) return url;
+
+  // Strip accidental leading slashes that aren't scheme-relative ("//host")
+  if (url.startsWith("/") && !url.startsWith("//")) {
+    url = url.replace(/^\/+/, "");
+  }
+
+  if (/^https?:\/\//i.test(url)) return url;
+
+  const scheme = opts?.preferHttp ? "http:" : "https:";
+  if (url.startsWith("//")) return scheme + url;
+
+  return `${scheme}//${url}`;
+}
+
 export function getWebringUrl(
   path: string,
   websiteUrl: string,
@@ -60,11 +84,27 @@ export async function downloadFile(fileUrl: string): Promise<Buffer> {
     method: "GET",
     url: fileUrl,
     responseType: "arraybuffer",
+    timeout: 15000,
+    maxRedirects: 5,
+    validateStatus: (s) => s >= 200 && s < 400,
   });
-  const buffer = Buffer.from(response.data, "binary");
+  const buffer = Buffer.from(response.data);
+
+  // Reject obvious non-images (error HTML pages, etc.) before sharp blows up.
+  const ct = String(response.headers["content-type"] || "").toLowerCase();
+  if (ct.includes("text/html") || ct.includes("application/json")) {
+    throw new Error(`Banner URL returned non-image content-type: ${ct || "(empty)"}`);
+  }
+  if (buffer.length >= 15 && buffer.slice(0, 15).toString("utf8").toUpperCase().includes("<!DOCTYPE")) {
+    throw new Error("Banner URL returned HTML instead of an image");
+  }
 
   const sImage = sharp(buffer);
   const metadata = await sImage.metadata();
+
+  if (!metadata.format) {
+    throw new Error("Banner URL was not a recognizable image");
+  }
 
   if (metadata.format === "gif") {
     return buffer;
@@ -79,7 +119,15 @@ export async function downloadBanner(request: WebsiteRequestAttributes) {
   if (!request.banner) {
     buffer = await generateBanner(request);
   } else {
-    buffer = await downloadFile(request.banner);
+    try {
+      buffer = await downloadFile(request.banner);
+    } catch (e) {
+      console.error(
+        `Banner download failed for ${request.id} (${request.banner}), generating fallback:`,
+        (e as Error).message || e
+      );
+      buffer = await generateBanner(request);
+    }
   }
   const savePath = path.join(__dirname, "../assets/banners", filename);
   await saveImage(buffer, savePath);

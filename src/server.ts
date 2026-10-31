@@ -32,7 +32,11 @@ import {
   RECAPTCHA_SITE_KEY,
 } from "./config";
 import * as db from "./db";
-import { getWebringUrl, isValidBanner } from "./helpers";
+import {
+  getWebringUrl,
+  isValidBanner,
+  normalizeExternalUrl,
+} from "./helpers";
 import { isOldBrowser } from "./old-browser";
 import { generateBannerWidget, generateTextOnlyWidget } from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
@@ -57,6 +61,15 @@ app.use(retroMiddleware);
 
 app.use("/assets", express.static("assets"));
 
+function withAbsoluteUrl<T extends { url: string; isVintage?: boolean }>(
+  site: T
+): T {
+  return {
+    ...site,
+    url: normalizeExternalUrl(site.url, { preferHttp: !!site.isVintage }),
+  };
+}
+
 /**
  * Member routes
  */
@@ -64,19 +77,25 @@ app.use("/assets", express.static("assets"));
 app.get("/member/:website/next/navigate", async (req, res) => {
   const website = req.params.website;
   const result = await db.getNextWebsite(website, req.isOldBrowser);
-  res.redirect(result.url);
+  res.redirect(
+    normalizeExternalUrl(result.url, { preferHttp: result.isVintage })
+  );
 });
 
 app.get("/member/:website/previous/navigate", async (req, res) => {
   const website = req.params.website;
   const result = await db.getPreviousWebsite(website, req.isOldBrowser);
-  res.redirect(result.url);
+  res.redirect(
+    normalizeExternalUrl(result.url, { preferHttp: result.isVintage })
+  );
 });
 
 app.get("/member/:website/random/navigate", async (req, res) => {
   const website = req.params.website;
   const random = await db.getRandomWebsite(req.isOldBrowser, website);
-  res.redirect(random.url);
+  res.redirect(
+    normalizeExternalUrl(random.url, { preferHttp: random.isVintage })
+  );
 });
 
 /**
@@ -86,19 +105,19 @@ app.get("/member/:website/random/navigate", async (req, res) => {
 app.get("/api/member/:website/next", async (req, res) => {
   const website = req.params.website;
   const result = await db.getNextWebsite(website, req.isOldBrowser);
-  res.send(result);
+  res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/previous", async (req, res) => {
   const website = req.params.website;
   const result = await db.getPreviousWebsite(website, req.isOldBrowser);
-  res.send(result);
+  res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/random", async (req, res) => {
   const website = req.params.website;
   const random = await db.getRandomWebsite(req.isOldBrowser, website);
-  res.send(random);
+  res.send(withAbsoluteUrl(random));
 });
 
 /**
@@ -107,17 +126,19 @@ app.get("/api/member/:website/random", async (req, res) => {
 
 app.get("/random", async (req, res) => {
   const random = await db.getRandomWebsite(req.isOldBrowser);
-  res.send(random);
+  res.send(withAbsoluteUrl(random));
 });
 
 app.get("/random/navigate", async (req, res) => {
   const random = await db.getRandomWebsite(req.isOldBrowser);
-  res.redirect(random.url);
+  res.redirect(
+    normalizeExternalUrl(random.url, { preferHttp: random.isVintage })
+  );
 });
 
-app.get("/random/list", (req, res) => {
-  const randomSites = db.getRandomSiteList(req.isOldBrowser, 10);
-  res.send(randomSites);
+app.get("/random/list", async (req, res) => {
+  const randomSites = await db.getRandomSiteList(req.isOldBrowser, 10);
+  res.send(randomSites.map(withAbsoluteUrl));
 });
 
 app.get("/widget/widget.js", (req, res) => {
@@ -150,7 +171,7 @@ app.get("/widget/:website", async (req, res) => {
     return;
   }
 
-  res.send(website);
+  res.send(withAbsoluteUrl(website));
 });
 
 app.get("/widget/:website/navigate", async (req, res) => {
@@ -166,7 +187,9 @@ app.get("/widget/:website/navigate", async (req, res) => {
 
   const target = await getCachedWidgetData(current, req.isOldBrowser);
   const website = await db.getWebsite(target.targetWebsiteId);
-  res.redirect(website.url);
+  res.redirect(
+    normalizeExternalUrl(website.url, { preferHttp: website.isVintage })
+  );
 });
 
 // This is very rough, we should improve how we send the image
@@ -263,15 +286,19 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
     errors.push("The site URL is mandatory.");
   }
 
+  const normalizedSiteUrl = siteurl
+    ? normalizeExternalUrl(String(siteurl).trim(), { preferHttp: isVintage })
+    : "";
+
   const isURLValid =
     /(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gm.exec(
-      siteurl
+      normalizedSiteUrl || siteurl
     );
 
   if (!isURLValid) {
     errors.push("The website URL is invalid.");
   } else {
-    const exists = await db.checkIfWebsiteExists(siteurl);
+    const exists = await db.checkIfWebsiteExists(normalizedSiteUrl);
     if (!!exists) {
       errors.push("This website has already been submitted.");
     }
@@ -299,7 +326,7 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
       description,
       email,
       name: sitename.trim(),
-      url: siteurl.trim(),
+      url: normalizedSiteUrl,
       banner: bannerurl.trim(),
       isVintage,
     });
@@ -342,7 +369,7 @@ app.get("/widget", async (req, res) => {
 app.get("/", async (req, res) => {
   const randomSites = await db.getRandomSiteList(req.isOldBrowser, 5);
 
-  res.render("home", { randomSites });
+  res.render("home", { randomSites: randomSites.map(withAbsoluteUrl) });
 });
 
 app.get("/login", recaptcha.middleware.render, async (_, res) => {
@@ -381,10 +408,12 @@ app.get("/admin", authorization, async (_, res) => {
   const currentRaw = await db.getAllWebsites();
   const requests = requestsRaw.map((r) => ({
     ...r,
+    url: normalizeExternalUrl(r.url, { preferHttp: r.isVintage }),
     submittedAt: formatAdminDate(r.createdAt),
   }));
   const current = currentRaw.map((s) => ({
     ...s,
+    url: normalizeExternalUrl(s.url, { preferHttp: s.isVintage }),
     approvedAt: formatAdminDate(s.createdAt),
     approvalEmailed: !!s.approvalEmailed,
   }));
@@ -392,7 +421,14 @@ app.get("/admin", authorization, async (_, res) => {
 });
 
 app.get("/admin/email-template", authorization, async (_, res) => {
-  return res.render("email-template", {});
+  // Pass placeholder text from JS so the Vash view never contains "{{" / "@{" sequences.
+  return res.render("email-template", {
+    phId: "{{id}}",
+    phName: "{{name}}",
+    phUrl: "{{url}}",
+    phEmail: "{{email}}",
+    phWidgetUrl: "{{widgetUrl}}",
+  });
 });
 
 /** Shared seed defaults only — each admin overrides via browser localStorage. */
@@ -405,17 +441,20 @@ app.get("/mailto-form/:website", authorization, async (req, res) => {
   const id = req.params.website;
   const current = await db.getWebsite(id);
   // encodeURIComponent so Vash HTML-escaping cannot break the JSON payload.
+  const absoluteUrl = normalizeExternalUrl(current.url, {
+    preferHttp: current.isVintage,
+  });
   const siteJsonEncoded = encodeURIComponent(
     JSON.stringify({
       id: current.id,
       name: current.name,
-      url: current.url,
+      url: absoluteUrl,
       email: current.email || "",
       widgetUrl: widgetSetupUrl(current.id),
     })
   );
   return res.render("mailto-form", {
-    current,
+    current: { ...current, url: absoluteUrl },
     siteJsonEncoded,
     approvalEmailed: !!current.approvalEmailed,
   });
@@ -425,8 +464,13 @@ app.post("/admin_action", authorization, async (req, res) => {
   const { body } = req;
 
   if (typeof body.approve === "string" && body.approve) {
-    await approveRequest(body.id);
-    return res.redirect(`/mailto-form/${encodeURIComponent(body.id)}`);
+    try {
+      await approveRequest(body.id);
+      return res.redirect(`/mailto-form/${encodeURIComponent(body.id)}`);
+    } catch (e) {
+      console.error("approveRequest failed:", (e as Error).message || e);
+      return res.redirect("/admin");
+    }
   }
 
   if (typeof body.deny === "string" && body.deny) {
@@ -495,14 +539,11 @@ app.get("/frameset/:website/top", async (req, res) => {
 app.get("/frameset/:website", async (req, res) => {
   const id = req.params.website;
   const current = await db.getWebsite(id);
-  const currentSiteUrl =
-    !current.url.startsWith("http") && !current.url.startsWith("//")
-      ? `//${current.url}`
-      : current.url;
-
   res.render("frameset-browser", {
     currentSiteId: current.id,
-    currentSiteUrl,
+    currentSiteUrl: normalizeExternalUrl(current.url, {
+      preferHttp: current.isVintage,
+    }),
   });
 });
 

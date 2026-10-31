@@ -2,36 +2,32 @@ import * as db from "./db";
 import { downloadBanner } from "./helpers";
 
 export async function approveRequest(id: string) {
+  // Let Sequelize manage commit/rollback — do not call t.rollback() inside
+  // the callback (that causes "Transaction cannot be committed… rollback").
   return db.sequelize.transaction(async (t) => {
-    try {
-      const request = await db.getRequest(id, t);
+    const request = await db.getRequest(id, t);
 
-      const downloaded = await downloadBanner(request);
+    const downloaded = await downloadBanner(request);
 
-      const { description, email, name, url, isVintage, createdAt } = request;
+    const { description, email, name, url, isVintage, createdAt } = request;
 
-      await db.addWebsite(
-        {
-          description,
-          email,
-          id,
-          name,
-          url,
-          banner: downloaded,
-          isVintage,
-          approvalEmailed: false,
-          // Keep original submission time as the site's createdAt when possible.
-          ...(createdAt ? { createdAt: createdAt as Date } : {}),
-        } as any,
-        t
-      );
+    await db.addWebsite(
+      {
+        description,
+        email,
+        id,
+        name,
+        url,
+        banner: downloaded,
+        isVintage,
+        approvalEmailed: false,
+        // Keep original submission time as the site's createdAt when possible.
+        ...(createdAt ? { createdAt: createdAt as Date } : {}),
+      } as any,
+      t
+    );
 
-      await db.removeRequest(id, t);
-    } catch (ex) {
-      console.error(ex);
-      t.rollback();
-      return;
-    }
+    await db.removeRequest(id, t);
   });
 }
 

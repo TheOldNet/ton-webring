@@ -7,11 +7,11 @@
     </p>
     <p>
       Placeholders:
-      <code>@html.raw("{{id}}")</code>,
-      <code>@html.raw("{{name}}")</code>,
-      <code>@html.raw("{{url}}")</code>,
-      <code>@html.raw("{{email}}")</code>,
-      <code>@html.raw("{{widgetUrl}}")</code>
+      <code>@model.phId</code>,
+      <code>@model.phName</code>,
+      <code>@model.phUrl</code>,
+      <code>@model.phEmail</code>,
+      <code>@model.phWidgetUrl</code>
     </p>
     <p>
       Gmail account index is the number in
