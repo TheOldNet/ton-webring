@@ -62,6 +62,11 @@ export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
       allowNull: false,
       defaultValue: false,
     },
+    approvalEmailed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     order: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -118,6 +123,14 @@ export async function connect() {
   try {
     await sequelize.authenticate();
     await sequelize.sync();
+    // Existing SQLite DBs won't pick up new columns from sync() alone.
+    try {
+      await sequelize.query(
+        "ALTER TABLE websites ADD COLUMN approvalEmailed BOOLEAN NOT NULL DEFAULT 0"
+      );
+    } catch (_) {
+      /* column already exists */
+    }
     console.log("Connection has been established successfully.");
   } catch (error) {
     console.error("Unable to connect to the database:", error);
@@ -300,5 +313,16 @@ export async function clearBanner(id: string, t?: Transaction) {
   return Requests.update(
     { banner: null },
     { where: { id }, transaction: t, returning: true }
+  );
+}
+
+export async function markApprovalEmailed(
+  id: string,
+  emailed: boolean = true,
+  t?: Transaction
+) {
+  return Websites.update(
+    { approvalEmailed: emailed },
+    { where: { id }, transaction: t }
   );
 }

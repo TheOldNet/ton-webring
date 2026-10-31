@@ -6,7 +6,7 @@
       }
 
       function validateApprove(form) {
-        return confirm('Are you sure you want to approve this request?');
+        return confirm('Are you sure you want to approve this request? You will go to the email form next.');
       }
 
       function validateClearBanner(form) {
@@ -27,11 +27,13 @@
     </script>
 
     <h1>Admin</h1>
+    <p><a href="/admin/email-template">Edit approval email template</a></p>
 
     <h2>WebRing Requests</h2>
     <table width="100%" border="2" cellspacing="2" cellpadding="2">
       <thead>
         <tr>
+          <th>Submitted</th>
           <th>ID</th>
           <th>URL</th>
           <th>Title</th>
@@ -44,6 +46,7 @@
       </thead>
       @model.requests.forEach(function (request) {
         <tr>
+          <td>@request.submittedAt</td>
           <td>@request.id</td>
           <td><a href="@request.url" target="_blank">@request.url</a></td>
           <td>@request.name</td>
@@ -76,7 +79,7 @@
               <input type="hidden" name="id" value="@request.id" />
               <input type="submit" name="clear_banner" value="Clear Banner" />
             </form>
-          </th>
+          </td>
         </tr>
       })
     </table>
@@ -85,11 +88,13 @@
     <table width="100%" border="2" cellspacing="2" cellpadding="2">
       <thead>
         <tr>
+          <th>Approved</th>
           <th>ID</th>
           <th>URL</th>
           <th>Title</th>
           <th>Description</th>
           <th>Email</th>
+          <th>Emailed?</th>
           <th width="470px">Banner</th>
           <th>Is Retro</th>
           <th>Has Embed</th>
@@ -98,11 +103,19 @@
       </thead>
       @model.current.forEach(function (site) {
         <tr>
+          <td>@site.approvedAt</td>
           <td>@site.id</td>
           <td><a href="@site.url" target="_blank">@site.url</a></td>
           <td>@site.name</td>
           <td>@site.description</td>
           <td><a href="/mailto-form/@site.id">@site.email</a></td>
+          <td>
+            @if (site.approvalEmailed === true) {
+              <span>YES</span>
+            } else {
+              <span>NO</span>
+            }
+          </td>
           <td><img src="/assets/banners/@site.banner" alt="@site.name"></td>
           <td>
             @if (site.isVintage === true) {
@@ -131,7 +144,8 @@
               <input type="hidden" name="id" value="@site.id" />
               <input type="submit" name="toggle_retro" value="Toggle Retro" />
             </form>
-          </th>
+            <a href="/mailto-form/@site.id">Email</a>
+          </td>
         </tr>
       })
     </table>

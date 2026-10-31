@@ -1,0 +1,42 @@
+@html.extend('layout', function () {
+  @html.append('content', function () {
+    <h1>Approval email template</h1>
+    <p>
+      Settings below are saved in <b>this browser only</b> (local storage), so each
+      admin can use their own Gmail account index and wording.
+    </p>
+    <p>
+      Placeholders: <code>{{id}}</code>, <code>{{name}}</code>, <code>{{url}}</code>,
+      <code>{{email}}</code>, <code>{{widgetUrl}}</code>
+    </p>
+    <p>
+      Gmail account index is the number in
+      <code>https://mail.google.com/mail/u/<b>N</b>/</code>
+      (0 = first Google account in the browser, 5 = sixth, etc.).
+    </p>
+    <p id="prefs-status"></p>
+
+    <label>Gmail user index (u/N):
+      <input type="number" id="gmailUserIndex" min="0" max="20" value="5" />
+    </label>
+    <br><br>
+    <label>Subject:<br>
+      <input type="text" id="subject" style="width: 40em;" />
+    </label>
+    <br><br>
+    <label>Body:<br>
+      <textarea id="body" rows="18" cols="100"></textarea>
+    </label>
+    <br><br>
+    <button type="button" id="save-prefs">Save to this browser</button>
+    &nbsp;
+    <button type="button" id="clear-prefs">Clear local storage</button>
+
+    <p><a href="/admin">Back to admin</a></p>
+
+    <script src="/assets/admin-email-prefs.js"></script>
+    <script>
+      TonWebringEmailPrefs.initTemplateEditor();
+    </script>
+  })
+})

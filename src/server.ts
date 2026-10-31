@@ -11,9 +11,15 @@ import {
   clearBanner,
   confirmBanner,
   denyRequest,
+  markApprovalEmailed,
   removeWebsite,
   toggleRetro,
 } from "./admin-actions";
+import {
+  formatAdminDate,
+  loadApprovalEmailTemplate,
+  widgetSetupUrl,
+} from "./approval-email";
 import { authorization } from "./auth-middleware";
 import { generateBanner } from "./banner";
 import {
@@ -371,15 +377,48 @@ app.get("/logout", authorization, (_, res) => {
 });
 
 app.get("/admin", authorization, async (_, res) => {
-  const requests = await db.getAllRequests();
-  const current = await db.getAllWebsites();
+  const requestsRaw = await db.getAllRequests();
+  const currentRaw = await db.getAllWebsites();
+  const requests = requestsRaw.map((r) => ({
+    ...r,
+    submittedAt: formatAdminDate(r.createdAt),
+  }));
+  const current = currentRaw.map((s) => ({
+    ...s,
+    approvedAt: formatAdminDate(s.createdAt),
+    approvalEmailed: !!s.approvalEmailed,
+  }));
   return res.render("admin", { requests, current });
+});
+
+app.get("/admin/email-template", authorization, async (_, res) => {
+  return res.render("email-template", {});
+});
+
+/** Shared seed defaults only — each admin overrides via browser localStorage. */
+app.get("/admin/email-template-defaults", authorization, async (_, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  return res.json(loadApprovalEmailTemplate());
 });
 
 app.get("/mailto-form/:website", authorization, async (req, res) => {
   const id = req.params.website;
   const current = await db.getWebsite(id);
-  return res.render("mailto-form", { current });
+  // encodeURIComponent so Vash HTML-escaping cannot break the JSON payload.
+  const siteJsonEncoded = encodeURIComponent(
+    JSON.stringify({
+      id: current.id,
+      name: current.name,
+      url: current.url,
+      email: current.email || "",
+      widgetUrl: widgetSetupUrl(current.id),
+    })
+  );
+  return res.render("mailto-form", {
+    current,
+    siteJsonEncoded,
+    approvalEmailed: !!current.approvalEmailed,
+  });
 });
 
 app.post("/admin_action", authorization, async (req, res) => {
@@ -387,6 +426,7 @@ app.post("/admin_action", authorization, async (req, res) => {
 
   if (typeof body.approve === "string" && body.approve) {
     await approveRequest(body.id);
+    return res.redirect(`/mailto-form/${encodeURIComponent(body.id)}`);
   }
 
   if (typeof body.deny === "string" && body.deny) {
@@ -407,6 +447,16 @@ app.post("/admin_action", authorization, async (req, res) => {
 
   if (typeof body.clear_banner === "string" && body.clear_banner) {
     await clearBanner(body.id);
+  }
+
+  if (typeof body.mark_emailed === "string" && body.mark_emailed) {
+    await markApprovalEmailed(body.id, true);
+    return res.redirect(`/mailto-form/${encodeURIComponent(body.id)}`);
+  }
+
+  if (typeof body.clear_emailed === "string" && body.clear_emailed) {
+    await markApprovalEmailed(body.id, false);
+    return res.redirect(`/mailto-form/${encodeURIComponent(body.id)}`);
   }
 
   return res.redirect("/admin");

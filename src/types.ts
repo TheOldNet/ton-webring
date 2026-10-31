@@ -9,7 +9,11 @@ export type WebsiteAttributes = {
   description: string;
   isVintage: boolean;
   hasWidget?: boolean;
+  /** Admin marked that the approval email was sent. */
+  approvalEmailed?: boolean;
   order?: number;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 };
 
 export type WebsiteCreator = WebsiteAttributes;
@@ -28,6 +32,8 @@ export type WebsiteRequestAttributes = {
   description: string;
   isVintage: boolean;
   denied?: boolean;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 };
 
 export type WebsiteRequestCreator = WebsiteRequestAttributes;

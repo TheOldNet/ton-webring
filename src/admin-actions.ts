@@ -8,7 +8,7 @@ export async function approveRequest(id: string) {
 
       const downloaded = await downloadBanner(request);
 
-      const { description, email, name, url, isVintage } = request;
+      const { description, email, name, url, isVintage, createdAt } = request;
 
       await db.addWebsite(
         {
@@ -19,7 +19,10 @@ export async function approveRequest(id: string) {
           url,
           banner: downloaded,
           isVintage,
-        },
+          approvalEmailed: false,
+          // Keep original submission time as the site's createdAt when possible.
+          ...(createdAt ? { createdAt: createdAt as Date } : {}),
+        } as any,
         t
       );
 
@@ -50,4 +53,8 @@ export async function toggleRetro(id: string) {
 
 export async function clearBanner(id: string) {
   return db.clearBanner(id);
+}
+
+export async function markApprovalEmailed(id: string, emailed: boolean = true) {
+  return db.markApprovalEmailed(id, emailed);
 }
