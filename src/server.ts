@@ -45,7 +45,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "vash");
 app.set("etag", false);
-app.use(useragent.express());
+app.use(useragent.express() as any);
 app.use(cookieParser());
 app.use(retroMiddleware);
 
