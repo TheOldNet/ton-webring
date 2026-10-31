@@ -23,7 +23,15 @@
           </tr>
         </tbody>
       </table>
-      <h3>Some random Websites!</h3>
+      <h3>Webring websites</h3>
+      <p>
+        <a href="/?page=@model.prevPage">&lt;&lt; Prev</a>
+        &nbsp;|&nbsp;
+        Page @model.pageDisplay of @model.totalPages
+        &nbsp;(@model.total sites)
+        &nbsp;|&nbsp;
+        <a href="/?page=@model.nextPage">Next &gt;&gt;</a>
+      </p>
       <table cellspacing="5" cellpadding="5" border="1" width="480">
         <tbody>
           <tr>
@@ -33,6 +41,13 @@
           </tr>
         </tbody>
       </table>
+      <p>
+        <a href="/?page=@model.prevPage">&lt;&lt; Prev</a>
+        &nbsp;|&nbsp;
+        Page @model.pageDisplay of @model.totalPages
+        &nbsp;|&nbsp;
+        <a href="/?page=@model.nextPage">Next &gt;&gt;</a>
+      </p>
 
       <p>Click <a href="/random/navigate">HERE</a> for a <b>random</b> website!</p>
     </center>

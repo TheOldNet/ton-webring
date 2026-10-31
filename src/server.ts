@@ -340,37 +340,71 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
 });
 
 app.get("/widget", async (req, res) => {
-  const websiteId = req.query.websiteId as string;
+  const websiteId = String(req.query.websiteId || "").trim();
 
   if (!websiteId) {
     res.render("widget", {});
     return;
   }
 
-  const website = await db.getWebsite(websiteId);
+  try {
+    const website = await db.getWebsite(websiteId);
 
-  if (!website) {
+    if (!website) {
+      res.render("widget", {
+        error: "The website provided wasn't found.",
+        websiteId,
+      });
+      return;
+    }
+
+    const generatedBannerWidget = generateBannerWidget(website);
+    const generatedTextOnlyWidget = generateTextOnlyWidget(website);
+
     res.render("widget", {
-      error: "The website provided wasn't found.",
+      generatedBannerWidget,
+      generatedTextOnlyWidget,
+      website,
+      websiteId,
     });
-    return;
+  } catch (e) {
+    console.error("widget page failed:", (e as Error).message || e);
+    res.status(500).render("widget", {
+      error: "Something went wrong loading that widget.",
+      websiteId,
+    });
   }
-
-  const generatedBannerWidget = generateBannerWidget(website);
-  const generatedTextOnlyWidget = generateTextOnlyWidget(website);
-
-  res.render("widget", {
-    generatedBannerWidget,
-    generatedTextOnlyWidget,
-    website,
-    websiteId,
-  });
 });
 
-app.get("/", async (req, res) => {
-  const randomSites = await db.getRandomSiteList(req.isOldBrowser, 5);
+const HOME_PAGE_SIZE = 5;
 
-  res.render("home", { randomSites: randomSites.map(withAbsoluteUrl) });
+app.get("/", async (req, res) => {
+  const total = await db.countWebsites(req.isOldBrowser);
+  const totalPages = Math.max(1, Math.ceil(total / HOME_PAGE_SIZE) || 1);
+
+  let page = parseInt(String(req.query.page ?? "0"), 10);
+  if (!Number.isFinite(page) || page < 0) page = 0;
+  if (page >= totalPages) page = totalPages - 1;
+
+  const sites = await db.getWebsitePage(
+    req.isOldBrowser,
+    page,
+    HOME_PAGE_SIZE
+  );
+
+  const prevPage = page <= 0 ? totalPages - 1 : page - 1;
+  const nextPage = page >= totalPages - 1 ? 0 : page + 1;
+
+  res.render("home", {
+    randomSites: sites.map(withAbsoluteUrl),
+    page,
+    pageDisplay: page + 1,
+    prevPage,
+    nextPage,
+    totalPages,
+    total,
+    pageSize: HOME_PAGE_SIZE,
+  });
 });
 
 app.get("/login", recaptcha.middleware.render, async (_, res) => {
@@ -492,7 +526,7 @@ app.post("/admin/edit/:id", authorization, async (req, res) => {
     bannerUrl: form.bannerUrl,
   });
 
-  if (!result.ok) {
+  if (result.ok === false) {
     const absoluteUrl = normalizeExternalUrl(site.url, {
       preferHttp: site.isVintage,
     });
@@ -528,6 +562,9 @@ app.get("/admin/email-template-defaults", authorization, async (_, res) => {
 app.get("/mailto-form/:website", authorization, async (req, res) => {
   const id = req.params.website;
   const current = await db.getWebsite(id);
+  if (!current) {
+    return res.status(404).send("Website not found");
+  }
   // encodeURIComponent so Vash HTML-escaping cannot break the JSON payload.
   const absoluteUrl = normalizeExternalUrl(current.url, {
     preferHttp: current.isVintage,
@@ -627,7 +664,10 @@ app.get("/frameset/:website/top", async (req, res) => {
 app.get("/frameset/:website", async (req, res) => {
   const id = req.params.website;
   const current = await db.getWebsite(id);
-  res.render("frameset-browser", {
+  if (!current) {
+    return res.status(404).send("Website not found");
+  }
+  return res.render("frameset-browser", {
     currentSiteId: current.id,
     currentSiteUrl: normalizeExternalUrl(current.url, {
       preferHttp: current.isVintage,
@@ -640,6 +680,29 @@ app.get("/frameset", async (req, res) => {
   res.redirect(
     getWebringUrl(`/frameset/${random.id}`, random.url, random.isVintage)
   );
+});
+
+// Express 4 does not catch async route rejections by default.
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error("express error:", err && err.message ? err.message : err);
+    if (!res.headersSent) {
+      res.status(500).send("Internal Server Error");
+    }
+  }
+);
+
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException:", err && err.message ? err.message : err);
 });
 
 app.listen(PORT, "0.0.0.0", () =>

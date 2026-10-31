@@ -2,7 +2,7 @@
   @{
     var isLast = index === (model.randomSites.length - 1);
   }
-  <img src="/assets/banners/@site.banner" alt="@site.name"><br><a href="@site.url"><strong>@site.name</strong></a><br>@site.description
+  <a href="@site.url"><img src="/assets/banners/@site.banner" alt="@site.name" border="0"></a><br><a href="@site.url"><strong>@site.name</strong></a><br>@site.description
   @if (!isLast) {
     <br><hr/>  
   }

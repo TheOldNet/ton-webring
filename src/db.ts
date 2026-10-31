@@ -147,8 +147,13 @@ function whereIsVintage<T extends { isVintage: boolean }>(
   return where;
 }
 
-export async function getWebsite(id: string): Promise<WebsiteAttributes> {
+export async function getWebsite(
+  id: string
+): Promise<WebsiteAttributes | undefined> {
   const result = await Websites.findOne({ where: { id } });
+  if (!result) {
+    return undefined;
+  }
   return result.toJSON();
 }
 
@@ -180,6 +185,29 @@ export async function getRandomSiteList(
     where: whereIsVintage(isVintage, {}),
     order: [Sequelize.literal("RANDOM()")],
     limit: total,
+  });
+  return result.map((o) => o.toJSON());
+}
+
+export async function countWebsites(
+  isVintage: boolean = undefined
+): Promise<number> {
+  return Websites.count({ where: whereIsVintage(isVintage, {}) });
+}
+
+/** Sequential page of members ordered by ring `order` (stable next/prev browsing). */
+export async function getWebsitePage(
+  isVintage: boolean = undefined,
+  page: number = 0,
+  pageSize: number = 10
+): Promise<WebsiteAttributes[]> {
+  const safeSize = Math.max(1, pageSize | 0);
+  const safePage = Math.max(0, page | 0);
+  const result = await Websites.findAll({
+    where: whereIsVintage(isVintage, {}),
+    order: [["order", "ASC"]],
+    offset: safePage * safeSize,
+    limit: safeSize,
   });
   return result.map((o) => o.toJSON());
 }
