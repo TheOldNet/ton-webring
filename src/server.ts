@@ -14,6 +14,7 @@ import {
   markApprovalEmailed,
   removeWebsite,
   toggleRetro,
+  updateWebsiteEntry,
 } from "./admin-actions";
 import {
   formatAdminDate,
@@ -418,6 +419,93 @@ app.get("/admin", authorization, async (_, res) => {
     approvalEmailed: !!s.approvalEmailed,
   }));
   return res.render("admin", { requests, current });
+});
+
+app.get("/admin/edit/:id", authorization, async (req, res) => {
+  let site;
+  try {
+    site = await db.getWebsite(req.params.id);
+  } catch {
+    return res.status(404).send("Website not found");
+  }
+  if (!site) {
+    return res.status(404).send("Website not found");
+  }
+  const absoluteUrl = normalizeExternalUrl(site.url, {
+    preferHttp: site.isVintage,
+  });
+  return res.render("edit-website", {
+    site: { ...site, url: absoluteUrl },
+    form: {
+      name: site.name,
+      url: absoluteUrl,
+      description: site.description || "",
+      email: site.email || "",
+      isVintage: !!site.isVintage,
+      bannerUrl: "",
+      bannerAction: "keep",
+    },
+    errors: [],
+    saved: req.query.saved === "1",
+    cacheBust: String(Date.now()),
+  });
+});
+
+app.post("/admin/edit/:id", authorization, async (req, res) => {
+  const id = req.params.id;
+  let site;
+  try {
+    site = await db.getWebsite(id);
+  } catch {
+    return res.status(404).send("Website not found");
+  }
+  if (!site) {
+    return res.status(404).send("Website not found");
+  }
+
+  const bannerActionRaw = String(req.body.bannerAction || "keep");
+  const bannerAction =
+    bannerActionRaw === "url" || bannerActionRaw === "regenerate"
+      ? bannerActionRaw
+      : "keep";
+
+  const form = {
+    name: String(req.body.name || ""),
+    url: String(req.body.url || ""),
+    description: String(req.body.description || ""),
+    email: String(req.body.email || ""),
+    isVintage:
+      req.body.isVintage === "on" ||
+      req.body.isVintage === "true" ||
+      req.body.isVintage === true,
+    bannerUrl: String(req.body.bannerUrl || ""),
+    bannerAction,
+  };
+
+  const result = await updateWebsiteEntry(id, {
+    name: form.name,
+    url: form.url,
+    description: form.description,
+    email: form.email,
+    isVintage: form.isVintage,
+    bannerAction,
+    bannerUrl: form.bannerUrl,
+  });
+
+  if (!result.ok) {
+    const absoluteUrl = normalizeExternalUrl(site.url, {
+      preferHttp: site.isVintage,
+    });
+    return res.status(400).render("edit-website", {
+      site: { ...site, url: absoluteUrl },
+      form,
+      errors: result.errors,
+      saved: false,
+      cacheBust: String(Date.now()),
+    });
+  }
+
+  return res.redirect(`/admin/edit/${encodeURIComponent(id)}?saved=1`);
 });
 
 app.get("/admin/email-template", authorization, async (_, res) => {

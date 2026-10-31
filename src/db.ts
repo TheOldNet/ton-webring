@@ -326,3 +326,27 @@ export async function markApprovalEmailed(
     { where: { id }, transaction: t }
   );
 }
+
+export async function updateWebsite(
+  id: string,
+  fields: Partial<
+    Pick<
+      WebsiteAttributes,
+      "name" | "url" | "description" | "email" | "banner" | "isVintage"
+    >
+  >,
+  t?: Transaction
+) {
+  return Websites.update(fields, { where: { id }, transaction: t });
+}
+
+/** True if another member (not `exceptId`) already uses this exact URL string. */
+export async function websiteUrlTakenByOther(
+  url: string,
+  exceptId: string
+): Promise<boolean> {
+  const count = await Websites.count({
+    where: { url, id: { [Op.ne]: exceptId } },
+  });
+  return count > 0;
+}

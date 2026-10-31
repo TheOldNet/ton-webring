@@ -1,0 +1,112 @@
+@html.extend('admin-layout', function () {
+  @html.append('content', function () {
+    <div class="admin-shell">
+    <div class="admin-nav">
+      <a href="/admin">← Back to admin list</a>
+      <a href="/mailto-form/@model.site.id">Email owner</a>
+    </div>
+
+    <h1>Edit website</h1>
+    <p class="lede">
+      Member ID stays the same (used by widgets):
+      <span class="admin-mono">@model.site.id</span>
+    </p>
+
+    @if (model.saved) {
+      <p class="admin-ok"><b>Saved.</b></p>
+    }
+
+    @if (model.errors && model.errors.length) {
+      <div class="admin-errors">
+        <b>Could not save:</b>
+        <ul>
+          @model.errors.forEach(function (err) {
+            <li>@err</li>
+          })
+        </ul>
+      </div>
+    }
+
+    <div class="admin-card">
+      <form class="admin-form" action="/admin/edit/@model.site.id" method="POST">
+        <label>Title
+          <input type="text" name="name" value="@model.form.name" required maxlength="200" />
+        </label>
+
+        <label>URL
+          <input type="text" name="url" value="@model.form.url" required />
+        </label>
+        <p class="hint">http(s) optional — bare hostnames are normalized. Changing the URL does not change the member ID.</p>
+
+        <label>Description
+          <textarea name="description" maxlength="256">@model.form.description</textarea>
+        </label>
+
+        <label>Email
+          <input type="email" name="email" value="@model.form.email" />
+        </label>
+
+        <label class="check">
+          @if (model.form.isVintage) {
+            <input type="checkbox" name="isVintage" checked="checked" />
+          } else {
+            <input type="checkbox" name="isVintage" />
+          }
+          Retro / vintage site
+        </label>
+
+        <p class="hint">Current banner:</p>
+        <div class="banner-preview">
+          @if (model.site.banner) {
+            <img src="/assets/banners/@model.site.banner?t=@model.cacheBust" alt="Current banner" />
+          } else {
+            <span class="admin-mono">(no banner file)</span>
+          }
+        </div>
+
+        <label>Banner action
+          <select name="bannerAction" id="bannerAction">
+            @if (model.form.bannerAction === 'url') {
+              <option value="keep">Keep current banner</option>
+              <option value="url" selected="selected">Download new banner from URL</option>
+              <option value="regenerate">Regenerate text banner</option>
+            } else {
+              @if (model.form.bannerAction === 'regenerate') {
+                <option value="keep">Keep current banner</option>
+                <option value="url">Download new banner from URL</option>
+                <option value="regenerate" selected="selected">Regenerate text banner</option>
+              } else {
+                <option value="keep" selected="selected">Keep current banner</option>
+                <option value="url">Download new banner from URL</option>
+                <option value="regenerate">Regenerate text banner</option>
+              }
+            }
+          </select>
+        </label>
+
+        <label id="bannerUrlWrap">New banner image URL
+          <input type="url" name="bannerUrl" value="@model.form.bannerUrl" placeholder="https://example.com/banner.gif" />
+        </label>
+        <p class="hint">Prefer a 468×60 GIF/JPEG. If download fails, save is rejected (current banner kept).</p>
+
+        <div class="admin-actions">
+          <button type="submit" class="admin-btn primary">Save changes</button>
+          <a class="admin-btn" href="/admin">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      (function () {
+        var sel = document.getElementById('bannerAction');
+        var wrap = document.getElementById('bannerUrlWrap');
+        function sync() {
+          wrap.style.display = sel.value === 'url' ? '' : 'none';
+        }
+        sel.addEventListener('change', sync);
+        sync();
+      })();
+    </script>
+    </div>
+  })
+})

@@ -1,5 +1,6 @@
-@html.extend('layout', function () {
+@html.extend('admin-layout', function () {
   @html.append('content', function () {
+    <div class="admin-shell admin-shell--wide">
     <script>
       function validateDeny(form) {
         return confirm('Are you sure you want to deny this request?');
@@ -27,10 +28,11 @@
     </script>
 
     <h1>Admin</h1>
-    <p><a href="/admin/email-template">Edit approval email template</a></p>
+    <p class="admin-nav"><a href="/admin/email-template">Edit approval email template</a></p>
 
     <h2>WebRing Requests</h2>
-    <table width="100%" border="2" cellspacing="2" cellpadding="2">
+    <div class="admin-table-wrap">
+    <table class="admin-table">
       <thead>
         <tr>
           <th>Submitted</th>
@@ -39,20 +41,20 @@
           <th>Title</th>
           <th>Description</th>
           <th>Email</th>
-          <th width="470px">Banner</th>
+          <th>Banner</th>
           <th>Is Retro</th>
-          <th width="150px">Actions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       @model.requests.forEach(function (request) {
         <tr>
           <td>@request.submittedAt</td>
-          <td>@request.id</td>
+          <td class="admin-mono">@request.id</td>
           <td><a href="@request.url" target="_blank">@request.url</a></td>
           <td>@request.name</td>
           <td>@request.description</td>
           <td><a href="mailto:@request.email">@request.email</a></td>
-          <td>
+          <td class="admin-table-banner">
             @if (request.banner) {
               <img src="@request.banner" alt="@request.name">
             } else {
@@ -66,16 +68,16 @@
               <span>NO</span>
             }
           </td>
-          <td>
-            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateDeny(this);">
+          <td class="admin-table-actions">
+            <form action="/admin_action" method="POST" onsubmit="return validateDeny(this);">
               <input type="hidden" name="id" value="@request.id" />
               <input type="submit" name="deny" value="Deny request" />
             </form>
-            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateApprove(this);">
+            <form action="/admin_action" method="POST" onsubmit="return validateApprove(this);">
               <input type="hidden" name="id" value="@request.id" />
               <input type="submit" name="approve" value="Approve" />
             </form>
-            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateClearBanner(this);">
+            <form action="/admin_action" method="POST" onsubmit="return validateClearBanner(this);">
               <input type="hidden" name="id" value="@request.id" />
               <input type="submit" name="clear_banner" value="Clear Banner" />
             </form>
@@ -83,9 +85,11 @@
         </tr>
       })
     </table>
+    </div>
 
     <h2>Current WebRing Websites</h2>
-    <table width="100%" border="2" cellspacing="2" cellpadding="2">
+    <div class="admin-table-wrap">
+    <table class="admin-table">
       <thead>
         <tr>
           <th>Approved</th>
@@ -95,16 +99,16 @@
           <th>Description</th>
           <th>Email</th>
           <th>Emailed?</th>
-          <th width="470px">Banner</th>
+          <th>Banner</th>
           <th>Is Retro</th>
           <th>Has Embed</th>
-          <th width="210px">Actions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       @model.current.forEach(function (site) {
         <tr>
           <td>@site.approvedAt</td>
-          <td>@site.id</td>
+          <td class="admin-mono">@site.id</td>
           <td><a href="@site.url" target="_blank">@site.url</a></td>
           <td>@site.name</td>
           <td>@site.description</td>
@@ -116,7 +120,9 @@
               <span>NO</span>
             }
           </td>
-          <td><img src="/assets/banners/@site.banner" alt="@site.name"></td>
+          <td class="admin-table-banner">
+            <img src="/assets/banners/@site.banner" alt="@site.name">
+          </td>
           <td>
             @if (site.isVintage === true) {
               <span>YES</span>
@@ -131,16 +137,17 @@
               <span>NO</span>
             }
           </td>
-          <td>
-            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateRemove(this);">
+          <td class="admin-table-actions">
+            <a href="/admin/edit/@site.id">Edit</a>
+            <form action="/admin_action" method="POST" onsubmit="return validateRemove(this);">
               <input type="hidden" name="id" value="@site.id" />
               <input type="submit" name="remove" value="Remove website" />
             </form>
-            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateConfirmBanner(this);">
+            <form action="/admin_action" method="POST" onsubmit="return validateConfirmBanner(this);">
               <input type="hidden" name="id" value="@site.id" />
               <input type="submit" name="confirm_banner" value="Confirm embed" />
             </form>
-            <form action="/admin_action" method="POST" style="display: inline; margin: 0;" onsubmit="return validateToggleRetro(this);">
+            <form action="/admin_action" method="POST" onsubmit="return validateToggleRetro(this);">
               <input type="hidden" name="id" value="@site.id" />
               <input type="submit" name="toggle_retro" value="Toggle Retro" />
             </form>
@@ -149,5 +156,7 @@
         </tr>
       })
     </table>
+    </div>
+    </div>
   })
 })

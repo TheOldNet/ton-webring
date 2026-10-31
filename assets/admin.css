@@ -1,0 +1,241 @@
+:root {
+  --bg: #0f1419;
+  --panel: #1a222c;
+  --border: #2e3a48;
+  --text: #e7eef6;
+  --muted: #9aabbc;
+  --accent: #3d9cf0;
+  --ok: #3ecf8e;
+  --err: #f07178;
+  --radius: 10px;
+  --font: "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body.admin-modern {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.45;
+}
+
+.admin-shell {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.admin-shell--wide {
+  max-width: none;
+  width: 100%;
+  padding: 1.25rem 1.5rem 3rem;
+}
+
+.admin-shell h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.admin-shell h2 {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.admin-shell .lede {
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+}
+
+.admin-shell a { color: var(--accent); }
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+}
+
+/* Same table layout as before — just themed, no fixed column widths */
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  vertical-align: top;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.admin-table th {
+  background: #141b24;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.admin-table-banner {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Classic webring banner box — clamps oversized request image URLs */
+.admin-table-banner img {
+  display: block;
+  width: 468px;
+  height: 60px;
+  object-fit: contain;
+  object-position: left center;
+  background: #000;
+}
+
+.admin-table-actions {
+  white-space: nowrap;
+}
+
+.admin-table-actions form {
+  display: inline;
+  margin: 0 0.15rem 0 0;
+}
+
+.admin-table-actions input[type="submit"] {
+  font: inherit;
+  font-size: 0.85rem;
+  margin: 0.1rem 0;
+  cursor: pointer;
+}
+
+.admin-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+}
+
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.admin-form input[type="text"],
+.admin-form input[type="url"],
+.admin-form input[type="email"],
+.admin-form textarea,
+.admin-form select {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+
+.admin-form textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.admin-form .check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+.admin-form .hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: -0.5rem 0 1rem;
+}
+
+.admin-form .banner-preview {
+  margin: 0.5rem 0 1rem;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.admin-form .banner-preview img {
+  width: 468px;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.admin-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #222c38;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.admin-btn:hover { filter: brightness(1.08); }
+
+.admin-btn.primary {
+  background: var(--accent);
+  border-color: #2a7fd4;
+  color: #061018;
+  font-weight: 600;
+}
+
+.admin-errors {
+  background: color-mix(in srgb, var(--err) 15%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--err) 40%, var(--border));
+  color: var(--err);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-errors ul { margin: 0.35rem 0 0; padding-left: 1.2rem; }
+
+.admin-ok {
+  color: var(--ok);
+  margin-bottom: 1rem;
+}
+
+.admin-mono {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
