@@ -451,7 +451,7 @@ app.post("/admin_action", authorization, async (req, res) => {
 
   if (typeof body.mark_emailed === "string" && body.mark_emailed) {
     await markApprovalEmailed(body.id, true);
-    return res.redirect(`/mailto-form/${encodeURIComponent(body.id)}`);
+    return res.redirect("/admin");
   }
 
   if (typeof body.clear_emailed === "string" && body.clear_emailed) {

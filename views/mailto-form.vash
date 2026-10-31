@@ -44,9 +44,10 @@
       @if (model.approvalEmailed) {
         <input type="submit" name="clear_emailed" value="Clear emailed flag" />
       } else {
-        <input type="submit" name="mark_emailed" value="I sent the email — mark as emailed" />
+        <input type="submit" name="mark_emailed" value="I sent the email — mark as emailed &amp; return to list" />
       }
     </form>
+    <p><a href="/admin">Skip — back to admin list</a></p>
 
     <script src="/assets/admin-email-prefs.js"></script>
     <script>

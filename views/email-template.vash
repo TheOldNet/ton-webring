@@ -6,8 +6,12 @@
       admin can use their own Gmail account index and wording.
     </p>
     <p>
-      Placeholders: <code>{{id}}</code>, <code>{{name}}</code>, <code>{{url}}</code>,
-      <code>{{email}}</code>, <code>{{widgetUrl}}</code>
+      Placeholders:
+      <code>@html.raw("{{id}}")</code>,
+      <code>@html.raw("{{name}}")</code>,
+      <code>@html.raw("{{url}}")</code>,
+      <code>@html.raw("{{email}}")</code>,
+      <code>@html.raw("{{widgetUrl}}")</code>
     </p>
     <p>
       Gmail account index is the number in
