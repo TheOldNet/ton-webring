@@ -34,12 +34,17 @@ import {
 } from "./config";
 import * as db from "./db";
 import {
+  getHost,
   getWebringUrl,
   isValidBanner,
   normalizeExternalUrl,
 } from "./helpers";
 import { isOldBrowser } from "./old-browser";
-import { generateBannerWidget, generateTextOnlyWidget } from "./widget";
+import {
+  generateBannerWidget,
+  generateBannerWidgetPreview,
+  generateTextOnlyWidget,
+} from "./widget";
 import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
 import cookieParser = require("cookie-parser");
 import { retroMiddleware } from "./retro-middleware";
@@ -160,62 +165,75 @@ app.get("/widget/widget.js", (req, res) => {
 });
 
 app.get("/widget/:website", async (req, res) => {
+  // Used by widget.js on modern browsers to sync href/img to the cached target.
+  // Does not force a new pick — /image already did that for this page view.
   const id = req.params.website;
   const current = await db.getWebsite(id);
-  updateCacheForSite(current, req.isOldBrowser);
+  if (!current) {
+    return res.sendStatus(404);
+  }
 
   const target = await getCachedWidgetData(current, req.isOldBrowser);
   const website = await db.getWebsite(target.targetWebsiteId);
-
-  if (!website.banner) {
-    res.sendStatus(404);
-    return;
+  if (!website || !website.banner) {
+    return res.sendStatus(404);
   }
 
-  res.send(withAbsoluteUrl(website));
+  const absolute = withAbsoluteUrl(website);
+  return res.send({
+    ...absolute,
+    bannerSrc: `${getHost()}/assets/banners/${website.banner}`,
+  });
 });
 
 app.get("/widget/:website/navigate", async (req, res) => {
-  // This one doesn't update the cache because we don't
-  // want the scenario where the user sees a banner and when
-  // they click, it navigates to a different website.
+  // Do not refresh cache here — must match the banner already shown.
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", 0);
 
   const id = req.params.website;
   const current = await db.getWebsite(id);
+  if (!current) {
+    return res.status(404).send("Website not found");
+  }
 
   const target = await getCachedWidgetData(current, req.isOldBrowser);
   const website = await db.getWebsite(target.targetWebsiteId);
-  res.redirect(
+  if (!website) {
+    return res.status(404).send("Website not found");
+  }
+  return res.redirect(
     normalizeExternalUrl(website.url, { preferHttp: website.isVintage })
   );
 });
 
 // This is very rough, we should improve how we send the image
 app.get("/widget/:website/image", async (req, res) => {
-  // res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  // res.setHeader("Pragma", "no-cache");
-  // res.setHeader("Expires", 0);
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", 0);
 
   const id = req.params.website;
   const current = await db.getWebsite(id);
-  await updateCacheForSite(current, req.isOldBrowser);
+  if (!current) {
+    return res.sendStatus(404);
+  }
+
+  // Modern: new random target every image load (every page view).
+  // Vintage: reuse pairing for ~2 hours so banner + click stay matched without JS.
+  await updateCacheForSite(current, req.isOldBrowser, !req.isOldBrowser);
 
   const target = await getCachedWidgetData(current, req.isOldBrowser);
-
   const website = await db.getWebsite(target.targetWebsiteId);
 
-  if (!website.banner) {
-    // EVENTUALLY LOAD DEFAULT BANNER
-    res.sendStatus(404);
-    return;
+  if (!website || !website.banner) {
+    return res.sendStatus(404);
   }
 
   fs.readFile(
     path.join(__dirname, "../assets/banners", website.banner),
-    async (err, data) => {
+    (err, data) => {
       if (err) {
         console.log("Got error: " + err.message, err);
         res.sendStatus(500);
@@ -359,10 +377,12 @@ app.get("/widget", async (req, res) => {
     }
 
     const generatedBannerWidget = generateBannerWidget(website);
+    const generatedBannerWidgetPreview = generateBannerWidgetPreview(website);
     const generatedTextOnlyWidget = generateTextOnlyWidget(website);
 
     res.render("widget", {
       generatedBannerWidget,
+      generatedBannerWidgetPreview,
       generatedTextOnlyWidget,
       website,
       websiteId,

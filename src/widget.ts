@@ -15,6 +15,24 @@ export function generateBannerWidget(website: WebsiteAttributes) {
   `;
 }
 
+/** Admin/preview only — shows this member's own banner so the /widget page isn't confusing. */
+export function generateBannerWidgetPreview(website: WebsiteAttributes) {
+  const host = getHost();
+  const bannerFile = website.banner || "";
+  const bannerSrc = bannerFile
+    ? `${host}/assets/banners/${bannerFile}`
+    : `${host}/widget/${website.id}/image`;
+  return `
+  <a href="${host}/"><img src="${bannerSrc}" alt="${website.name}" border="0"></a><br>
+  <font size="-1">
+    Proud member of <a href="${host}/"><b>TheOldNet</b></a> webring! Check some other cool websites!<br>
+    [<a href="${host}/member/${website.id}/previous/navigate">Previous site</a>] -
+    [<a href="${host}/member/${website.id}/random/navigate">Random site</a>] -
+    [<a href="${host}/member/${website.id}/next/navigate">Next site</a>]
+  </font>
+  `;
+}
+
 export function generateTextOnlyWidget(website: WebsiteAttributes) {
   const host = getHost();
   return `

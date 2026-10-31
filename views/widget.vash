@@ -23,8 +23,11 @@
       <p>Copy this code and paste it on your website</p>
       <textarea cols="130" rows="10">@model.generatedBannerWidget</textarea>
       <br>
-      <p>This is what the widget is going to look like:</p>
-      @html.raw(model.generatedBannerWidget)
+      <p>
+        Preview using <b>your</b> banner (on your site the widget shows
+        <b>other</b> members so visitors can discover them):
+      </p>
+      @html.raw(model.generatedBannerWidgetPreview)
       <hr/>
     }
 

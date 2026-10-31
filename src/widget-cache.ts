@@ -2,8 +2,8 @@ import { DateTime } from "luxon";
 import { getRandomWebsite } from "./db";
 import { WebsiteAttributes } from "./types";
 
-// Doing the widget cache in memory here for now,
-// we can move it to redis eventually.
+// In-memory pairing so /image and /navigate stay in sync for non-JS clients.
+// Modern browsers force a new target on each image load; JS then syncs the href.
 type CacheData = {
   time: DateTime;
   targetWebsiteId: string;
@@ -12,43 +12,41 @@ type CacheData = {
 let retroCache: Record<string, CacheData> = {};
 let modernCache: Record<string, CacheData> = {};
 
+function cacheFor(isVintage: boolean) {
+  return isVintage ? retroCache : modernCache;
+}
+
 export async function updateCacheForSite(
   website: WebsiteAttributes,
-  isVintage: boolean
+  isVintage: boolean,
+  force: boolean = false
 ) {
-  let cachedSite = isVintage ? retroCache[website.id] : modernCache[website.id];
-  if (!!cachedSite && cachedSite.time.diffNow().as("hours") < 2) {
-    return;
+  const cache = cacheFor(isVintage);
+  const cachedSite = cache[website.id];
+
+  // Vintage: keep the same pairing for ~2 hours so banner + click stay matched.
+  // Modern: callers pass force=true on image load for a fresh banner each page view.
+  if (!force && cachedSite) {
+    const ageHours = DateTime.now().diff(cachedSite.time).as("hours");
+    if (ageHours < 2) {
+      return;
+    }
   }
 
   const random = await getRandomWebsite(isVintage, website.id);
-  if (isVintage) {
-    cachedSite = retroCache[website.id] = {
-      time: DateTime.local(),
-      targetWebsiteId: random.id,
-    };
-  } else {
-    cachedSite = modernCache[website.id] = {
-      time: DateTime.local(),
-      targetWebsiteId: random.id,
-    };
-  }
+  cache[website.id] = {
+    time: DateTime.local(),
+    targetWebsiteId: random.id,
+  };
 }
 
 export async function getCachedWidgetData(
   website: WebsiteAttributes,
   isVintage: boolean
 ) {
-  if (
-    (isVintage && !retroCache[website.id]) ||
-    (!isVintage && !retroCache[website.id])
-  ) {
-    await updateCacheForSite(website, isVintage);
+  const cache = cacheFor(isVintage);
+  if (!cache[website.id]) {
+    await updateCacheForSite(website, isVintage, true);
   }
-
-  if (isVintage) {
-    return retroCache[website.id];
-  }
-
-  return modernCache[website.id];
+  return cache[website.id];
 }
