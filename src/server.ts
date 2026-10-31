@@ -656,8 +656,14 @@ app.get("/frameset/:website/previous", async (req, res) => {
 app.get("/frameset/:website/top", async (req, res) => {
   const id = req.params.website;
   const website = await db.getWebsite(id);
-  res.render("frameset-browser-top", {
-    website,
+  if (!website) {
+    return res.status(404).send("Website not found");
+  }
+  return res.render("frameset-browser-top", {
+    website: {
+      ...website,
+      url: normalizeExternalUrl(website.url, { preferHttp: website.isVintage }),
+    },
   });
 });
 

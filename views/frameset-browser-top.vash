@@ -21,10 +21,11 @@
             </tr>
         </table>        
         <font size="-1">
-        Currently browsing: <b>@model.website.url</b> - 
+        Currently browsing: <b>@model.website.url</b> -
         [<a href="/frameset/@model.website.id/previous" target="_parent">Previous site</a>] -
         [<a href="/frameset/@model.website.id/random" target="_parent">Random site</a>] -
-        [<a href="/frameset/@model.website.id/next" target="_parent">Next site</a>]
+        [<a href="/frameset/@model.website.id/next" target="_parent">Next site</a>] -
+        [<a href="@model.website.url" target="_top">Close frame</a>]
         </font>
     </center>
   </body>

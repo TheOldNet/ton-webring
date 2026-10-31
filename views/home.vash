@@ -1,29 +1,9 @@
 @html.extend('layout', function () {
   @html.append('content', function () {
     <center>
-      <a href="/submit">Submit a Website</a> | <a href="/widget">Generate a Widget for your Website</a>
-      <br>
-      <h3>Browse the Webring using:</h3>
-      <table cellspacing="5" cellpadding="10" border="1" width="480" bgcolor="#DDDDDD">
-        <tbody>
-          <tr>
-            <td align="center">
-              <a href="/frameset">
-                <font color="blue">
-                  The
-                </font>
-                <font color="red">
-                  Frameset
-                </font>
-                <font color="blue">
-                  Browser
-                </font>
-              </a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <h3>Webring websites</h3>
+      <h3>
+        <a href="/frameset">Click here for a random website!</a>
+      </h3>
       <p>
         <a href="/?page=@model.prevPage">&lt;&lt; Prev</a>
         &nbsp;|&nbsp;
@@ -48,8 +28,9 @@
         &nbsp;|&nbsp;
         <a href="/?page=@model.nextPage">Next &gt;&gt;</a>
       </p>
-
-      <p>Click <a href="/random/navigate">HERE</a> for a <b>random</b> website!</p>
+      <p>
+        <a href="/submit">Submit a Website</a> | <a href="/widget">Generate a Widget for your Website</a>
+      </p>
     </center>
   })
 })
