@@ -2,8 +2,11 @@
   @html.append('content', function () {
     <center>
       <h3>
-        <a href="/frameset">Click here for a random website!</a>
+        <a href="/random/navigate">Click here for a random website!</a>
       </h3>
+      <p>
+        <a href="/frameset">Browse with frameset</a>
+      </p>
       <p>
         <a href="/?page=@model.prevPage">&lt;&lt; Prev</a>
         &nbsp;|&nbsp;
