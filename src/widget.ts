@@ -1,5 +1,5 @@
 import { WebsiteAttributes } from "./types";
-import { getHost } from "./helpers";
+import { bannerPublicUrl, getHost } from "./helpers";
 
 export function generateBannerWidget(website: WebsiteAttributes) {
   const host = getHost();
@@ -18,10 +18,9 @@ export function generateBannerWidget(website: WebsiteAttributes) {
 /** Admin/preview only — shows this member's own banner so the /widget page isn't confusing. */
 export function generateBannerWidgetPreview(website: WebsiteAttributes) {
   const host = getHost();
-  const bannerFile = website.banner || "";
-  const bannerSrc = bannerFile
-    ? `${host}/assets/banners/${bannerFile}`
-    : `${host}/widget/${website.id}/image`;
+  const bannerSrc =
+    bannerPublicUrl(website.banner, website.updatedAt) ||
+    `${host}/widget/${website.id}/image`;
   return `
   <a href="${host}/"><img src="${bannerSrc}" alt="${website.name}" border="0"></a><br>
   <font size="-1">

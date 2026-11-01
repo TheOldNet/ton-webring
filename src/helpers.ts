@@ -12,6 +12,35 @@ export function getHost() {
 }
 
 /**
+ * Public banner URL with cache-buster. Banner files keep a stable name (`{id}.gif`);
+ * without ?v=, browsers keep showing the pre-edit image after admin replaces the file.
+ */
+export function bannerPublicPath(
+  bannerFile: string | null | undefined,
+  version?: string | number | Date | null
+): string {
+  const file = String(bannerFile || "").trim();
+  if (!file) return "";
+  let v = "";
+  if (version instanceof Date) {
+    v = String(version.getTime());
+  } else if (version != null && String(version).trim() !== "") {
+    const d = new Date(String(version));
+    v = Number.isFinite(d.getTime()) ? String(d.getTime()) : String(version);
+  }
+  const pathOnly = `/assets/banners/${file}`;
+  return v ? `${pathOnly}?v=${encodeURIComponent(v)}` : pathOnly;
+}
+
+export function bannerPublicUrl(
+  bannerFile: string | null | undefined,
+  version?: string | number | Date | null
+): string {
+  const pathOnly = bannerPublicPath(bannerFile, version);
+  return pathOnly ? `${getHost()}${pathOnly}` : "";
+}
+
+/**
  * Ensure member/site URLs are absolute so href/redirect never treat
  * "pavelsoftware.neocities.org" as a path on webring.theoldnet.com.
  */

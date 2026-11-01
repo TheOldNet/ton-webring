@@ -34,6 +34,8 @@ import {
 } from "./config";
 import * as db from "./db";
 import {
+  bannerPublicPath,
+  bannerPublicUrl,
   getHost,
   getWebringUrl,
   isValidBanner,
@@ -65,14 +67,33 @@ app.use(useragent.express() as any);
 app.use(cookieParser());
 app.use(retroMiddleware);
 
+// Banner GIFs are overwritten in place on edit — never let browsers keep them forever.
+app.use(
+  "/assets/banners",
+  express.static("assets/banners", {
+    etag: true,
+    lastModified: true,
+    setHeaders(res) {
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+    },
+  })
+);
 app.use("/assets", express.static("assets"));
 
-function withAbsoluteUrl<T extends { url: string; isVintage?: boolean }>(
+function withAbsoluteUrl<
+  T extends {
+    url: string;
+    isVintage?: boolean;
+    banner?: string;
+    updatedAt?: Date | string;
+  }
+>(
   site: T
-): T {
+): T & { bannerSrc: string } {
   return {
     ...site,
     url: normalizeExternalUrl(site.url, { preferHttp: !!site.isVintage }),
+    bannerSrc: bannerPublicPath(site.banner, site.updatedAt),
   };
 }
 
@@ -182,7 +203,8 @@ app.get("/widget/:website", async (req, res) => {
   const absolute = withAbsoluteUrl(website);
   return res.send({
     ...absolute,
-    bannerSrc: `${getHost()}/assets/banners/${website.banner}`,
+    // Absolute URL for cross-origin embeds; includes ?v=updatedAt cache-bust.
+    bannerSrc: bannerPublicUrl(website.banner, website.updatedAt),
   });
 });
 
@@ -469,6 +491,7 @@ app.get("/admin", authorization, async (_, res) => {
   const current = currentRaw.map((s) => ({
     ...s,
     url: normalizeExternalUrl(s.url, { preferHttp: s.isVintage }),
+    bannerSrc: bannerPublicPath(s.banner, s.updatedAt),
     approvedAt: formatAdminDate(s.createdAt),
     approvalEmailed: !!s.approvalEmailed,
   }));

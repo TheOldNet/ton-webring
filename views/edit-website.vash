@@ -58,7 +58,7 @@
         <p class="hint">Current banner:</p>
         <div class="banner-preview">
           @if (model.site.banner) {
-            <img src="/assets/banners/@model.site.banner?t=@model.cacheBust" alt="Current banner" />
+            <img src="/assets/banners/@model.site.banner?v=@model.cacheBust" alt="Current banner" />
           } else {
             <span class="admin-mono">(no banner file)</span>
           }

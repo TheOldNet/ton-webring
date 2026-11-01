@@ -121,7 +121,7 @@
             }
           </td>
           <td class="admin-table-banner">
-            <img src="/assets/banners/@site.banner" alt="@site.name">
+            <img src="@(site.bannerSrc || ('/assets/banners/' + site.banner))" alt="@site.name">
           </td>
           <td>
             @if (site.isVintage === true) {
