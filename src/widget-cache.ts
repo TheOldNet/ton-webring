@@ -50,3 +50,16 @@ export async function getCachedWidgetData(
   }
   return cache[website.id];
 }
+
+/** Point the widget pairing at a known target (after in-place prev/next/random). */
+export function setCachedWidgetTarget(
+  websiteId: string,
+  targetWebsiteId: string,
+  isVintage: boolean
+) {
+  const cache = cacheFor(isVintage);
+  cache[websiteId] = {
+    time: DateTime.local(),
+    targetWebsiteId,
+  };
+}

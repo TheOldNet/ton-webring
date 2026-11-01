@@ -47,7 +47,11 @@ import {
   generateBannerWidgetPreview,
   generateTextOnlyWidget,
 } from "./widget";
-import { getCachedWidgetData, updateCacheForSite } from "./widget-cache";
+import {
+  getCachedWidgetData,
+  setCachedWidgetTarget,
+  updateCacheForSite,
+} from "./widget-cache";
 import cookieParser = require("cookie-parser");
 import { retroMiddleware } from "./retro-middleware";
 
@@ -66,6 +70,24 @@ app.set("etag", false);
 app.use(useragent.express() as any);
 app.use(cookieParser());
 app.use(retroMiddleware);
+
+// Embeds on member sites fetch widget JSON / member APIs cross-origin.
+app.use((req, res, next) => {
+  const p = req.path || "";
+  if (
+    p === "/widget/widget.js" ||
+    /^\/widget\/[^/]+\/?$/.test(p) ||
+    p.startsWith("/api/member/")
+  ) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Accept");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+  }
+  next();
+});
 
 // Banner GIFs are overwritten in place on edit — never let browsers keep them forever.
 app.use(
@@ -93,7 +115,9 @@ function withAbsoluteUrl<
   return {
     ...site,
     url: normalizeExternalUrl(site.url, { preferHttp: !!site.isVintage }),
-    bannerSrc: bannerPublicPath(site.banner, site.updatedAt),
+    // Absolute URL so embeds on other hosts (e.g. theoldnet.com) do not
+    // resolve /assets/banners/… against the embedding page origin.
+    bannerSrc: bannerPublicUrl(site.banner, site.updatedAt),
   };
 }
 
@@ -120,8 +144,9 @@ app.get("/member/:website/previous/navigate", async (req, res) => {
 app.get("/member/:website/random/navigate", async (req, res) => {
   const website = req.params.website;
   const random = await db.getRandomWebsite(req.isOldBrowser, website);
+  // Same as previous/next: leave for the member site (no-JS / vintage fallback).
   res.redirect(
-    getWebringUrl(`/frameset/${random.id}`, random.url, random.isVintage)
+    normalizeExternalUrl(random.url, { preferHttp: random.isVintage })
   );
 });
 
@@ -132,18 +157,21 @@ app.get("/member/:website/random/navigate", async (req, res) => {
 app.get("/api/member/:website/next", async (req, res) => {
   const website = req.params.website;
   const result = await db.getNextWebsite(website, req.isOldBrowser);
+  setCachedWidgetTarget(website, result.id, req.isOldBrowser);
   res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/previous", async (req, res) => {
   const website = req.params.website;
   const result = await db.getPreviousWebsite(website, req.isOldBrowser);
+  setCachedWidgetTarget(website, result.id, req.isOldBrowser);
   res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/random", async (req, res) => {
   const website = req.params.website;
   const random = await db.getRandomWebsite(req.isOldBrowser, website);
+  setCachedWidgetTarget(website, random.id, req.isOldBrowser);
   res.send(withAbsoluteUrl(random));
 });
 
