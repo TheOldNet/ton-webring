@@ -38,7 +38,7 @@ export function generateBannerWidget(website: WebsiteAttributes) {
   // Modern browsers: widget.js intercepts .theoldnet-webring-nav clicks and swaps
   // banner + main link in place. hrefs remain for no-JS / vintage fallbacks.
   return `
-  <a id="theoldnet-webring-href" href="${host}/widget/${website.id}/navigate" data-website-id="${website.id}"><img src="${host}/widget/${website.id}/image" alt="${website.name}" border="0"></a><br>
+  <a id="theoldnet-webring-href" href="${host}/widget/${website.id}/navigate" data-website-id="${website.id}"><img src="${host}/widget/${website.id}/image" alt="${website.name}" border="0" width="468" height="60"></a><br>
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
     ${memberNavHtml(website.id, true)}
@@ -54,7 +54,7 @@ export function generateBannerWidgetPreview(website: WebsiteAttributes) {
     bannerPublicUrl(website.banner, website.updatedAt) ||
     `${host}/widget/${website.id}/image`;
   return `
-  <a href="${host}/"><img src="${bannerSrc}" alt="${website.name}" border="0"></a><br>
+  <a href="${host}/"><img src="${bannerSrc}" alt="${website.name}" border="0" width="468" height="60"></a><br>
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
     ${memberNavHtml(website.id, false)}
@@ -77,7 +77,7 @@ export function generateAnonymousBannerWidget() {
   const host = getHost();
   const id = ANONYMOUS_WIDGET_ID;
   return `
-  <a id="theoldnet-webring-href" href="${host}/widget/${id}/navigate" data-website-id="${id}"><img src="${host}/widget/${id}/image" alt="TheOldNet Webring" border="0"></a><br>
+  <a id="theoldnet-webring-href" href="${host}/widget/${id}/navigate" data-website-id="${id}"><img src="${host}/widget/${id}/image" alt="TheOldNet Webring" border="0" width="468" height="60"></a><br>
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
     ${memberNavHtml(id, true)}
@@ -90,7 +90,7 @@ export function generateAnonymousBannerWidgetPreview() {
   const host = getHost();
   const id = ANONYMOUS_WIDGET_ID;
   return `
-  <a href="${host}/widget/${id}/navigate"><img src="${host}/widget/${id}/image" alt="TheOldNet Webring" border="0"></a><br>
+  <a href="${host}/widget/${id}/navigate"><img src="${host}/widget/${id}/image" alt="TheOldNet Webring" border="0" width="468" height="60"></a><br>
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
     ${memberNavHtml(id, false)}

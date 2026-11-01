@@ -291,9 +291,8 @@ app.get("/widget/:website/navigate", async (req, res) => {
 
 // This is very rough, we should improve how we send the image
 app.get("/widget/:website/image", async (req, res) => {
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", 0);
+  // Avoid Cache-Control: no-store — iOS Safari often fails to paint <img> with no-store.
+  res.setHeader("Cache-Control", "private, max-age=0, must-revalidate");
 
   const current = await resolveWidgetOwner(req.params.website);
   if (!current) {
@@ -323,7 +322,11 @@ app.get("/widget/:website/image", async (req, res) => {
         return;
       }
 
-      res.type(path.extname(website.banner).substring(1));
+      const ext = path.extname(website.banner).toLowerCase();
+      if (ext === ".png") res.type("image/png");
+      else if (ext === ".jpg" || ext === ".jpeg") res.type("image/jpeg");
+      else if (ext === ".webp") res.type("image/webp");
+      else res.type("image/gif");
       res.send(data);
     }
   );
