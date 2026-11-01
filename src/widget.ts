@@ -1,6 +1,38 @@
 import { WebsiteAttributes } from "./types";
 import { bannerPublicUrl, getHost } from "./helpers";
 
+/** Shared embed id for non-members. Not a DB row — routes treat it specially. */
+export const ANONYMOUS_WIDGET_ID = "anonymous";
+
+export function isAnonymousWidgetId(id: string | undefined | null): boolean {
+  return String(id || "").trim().toLowerCase() === ANONYMOUS_WIDGET_ID;
+}
+
+/** Synthetic owner for widget cache / pairing (image ↔ navigate). */
+export function anonymousWidgetSite(): WebsiteAttributes {
+  const host = getHost();
+  return {
+    id: ANONYMOUS_WIDGET_ID,
+    name: "TheOldNet Webring",
+    email: "",
+    url: `${host}/`,
+    description: "",
+    isVintage: false,
+  };
+}
+
+function memberNavHtml(websiteId: string, withNavClass: boolean): string {
+  const host = getHost();
+  if (withNavClass) {
+    return `[<a class="theoldnet-webring-nav" data-nav="previous" href="${host}/member/${websiteId}/previous/navigate">Previous site</a>] -
+    [<a class="theoldnet-webring-nav" data-nav="random" href="${host}/member/${websiteId}/random/navigate">Random site</a>] -
+    [<a class="theoldnet-webring-nav" data-nav="next" href="${host}/member/${websiteId}/next/navigate">Next site</a>]`;
+  }
+  return `[<a href="${host}/member/${websiteId}/previous/navigate">Previous site</a>] -
+    [<a href="${host}/member/${websiteId}/random/navigate">Random site</a>] -
+    [<a href="${host}/member/${websiteId}/next/navigate">Next site</a>]`;
+}
+
 export function generateBannerWidget(website: WebsiteAttributes) {
   const host = getHost();
   // Modern browsers: widget.js intercepts .theoldnet-webring-nav clicks and swaps
@@ -9,9 +41,7 @@ export function generateBannerWidget(website: WebsiteAttributes) {
   <a id="theoldnet-webring-href" href="${host}/widget/${website.id}/navigate" data-website-id="${website.id}"><img src="${host}/widget/${website.id}/image" alt="${website.name}" border="0"></a><br>
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
-    [<a class="theoldnet-webring-nav" data-nav="previous" href="${host}/member/${website.id}/previous/navigate">Previous site</a>] -
-    [<a class="theoldnet-webring-nav" data-nav="random" href="${host}/member/${website.id}/random/navigate">Random site</a>] -
-    [<a class="theoldnet-webring-nav" data-nav="next" href="${host}/member/${website.id}/next/navigate">Next site</a>]
+    ${memberNavHtml(website.id, true)}
   </font>
   <script type="text/javascript" src="${host}/widget/widget.js"></script>
   `;
@@ -27,9 +57,7 @@ export function generateBannerWidgetPreview(website: WebsiteAttributes) {
   <a href="${host}/"><img src="${bannerSrc}" alt="${website.name}" border="0"></a><br>
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
-    [<a href="${host}/member/${website.id}/previous/navigate">Previous site</a>] -
-    [<a href="${host}/member/${website.id}/random/navigate">Random site</a>] -
-    [<a href="${host}/member/${website.id}/next/navigate">Next site</a>]
+    ${memberNavHtml(website.id, false)}
   </font>
   `;
 }
@@ -39,9 +67,44 @@ export function generateTextOnlyWidget(website: WebsiteAttributes) {
   return `
   <font size="-1">
     Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
-    [<a href="${host}/member/${website.id}/previous/navigate">Previous site</a>] -
-    [<a href="${host}/member/${website.id}/random/navigate">Random site</a>] -
-    [<a href="${host}/member/${website.id}/next/navigate">Next site</a>]
+    ${memberNavHtml(website.id, false)}
+  </font>
+  `;
+}
+
+/** Non-member share embed — same ring navigation, no site ID required. */
+export function generateAnonymousBannerWidget() {
+  const host = getHost();
+  const id = ANONYMOUS_WIDGET_ID;
+  return `
+  <a id="theoldnet-webring-href" href="${host}/widget/${id}/navigate" data-website-id="${id}"><img src="${host}/widget/${id}/image" alt="TheOldNet Webring" border="0"></a><br>
+  <font size="-1">
+    Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
+    ${memberNavHtml(id, true)}
+  </font>
+  <script type="text/javascript" src="${host}/widget/widget.js"></script>
+  `;
+}
+
+export function generateAnonymousBannerWidgetPreview() {
+  const host = getHost();
+  const id = ANONYMOUS_WIDGET_ID;
+  return `
+  <a href="${host}/widget/${id}/navigate"><img src="${host}/widget/${id}/image" alt="TheOldNet Webring" border="0"></a><br>
+  <font size="-1">
+    Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
+    ${memberNavHtml(id, false)}
+  </font>
+  `;
+}
+
+export function generateAnonymousTextOnlyWidget() {
+  const host = getHost();
+  const id = ANONYMOUS_WIDGET_ID;
+  return `
+  <font size="-1">
+    Proud member of TheOldNet <a href="${host}/"><b>Webring</b></a>! Check some other cool websites!<br>
+    ${memberNavHtml(id, false)}
   </font>
   `;
 }

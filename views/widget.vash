@@ -1,6 +1,12 @@
 @html.extend('layout', function () {
   @html.append('content', function () {
     <h1>Generate TheOldNet Webring Widget</h1>
+    <p>
+      You don't have to join the webring to add this banner to your website, but
+      if you do want to have your site included in the webring you need to
+      <a href="/submit">submit your page</a> and then regenerate this code using
+      your Website Id.
+    </p>
     <form action="/widget" method="GET">
       Website Id (from email):
       <br>
@@ -38,6 +44,26 @@
       <br>
       <p>This is what the widget is going to look like:</p>
       @html.raw(model.generatedTextOnlyWidget)
+      <hr/>
+    }
+
+    @if (model.showAnonymousWidgets) {
+      <hr/>
+      <h2>TheOldNet Webring Widgets</h2>
+      <h3>Banner Widget</h3>
+      <p>Copy this code and paste it on your website</p>
+      <textarea cols="130" rows="10">@model.anonymousBannerWidget</textarea>
+      <br>
+      <p>This is what the widget is going to look like:</p>
+      @html.raw(model.anonymousBannerWidgetPreview)
+      <hr/>
+
+      <h3>Text Only Widget</h3>
+      <p>Copy this code and paste it on your website</p>
+      <textarea cols="130" rows="6">@model.anonymousTextOnlyWidget</textarea>
+      <br>
+      <p>This is what the widget is going to look like:</p>
+      @html.raw(model.anonymousTextOnlyWidget)
       <hr/>
     }
 

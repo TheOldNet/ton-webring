@@ -43,9 +43,14 @@ import {
 } from "./helpers";
 import { isOldBrowser } from "./old-browser";
 import {
+  anonymousWidgetSite,
+  generateAnonymousBannerWidget,
+  generateAnonymousBannerWidgetPreview,
+  generateAnonymousTextOnlyWidget,
   generateBannerWidget,
   generateBannerWidgetPreview,
   generateTextOnlyWidget,
+  isAnonymousWidgetId,
 } from "./widget";
 import {
   getCachedWidgetData,
@@ -54,6 +59,7 @@ import {
 } from "./widget-cache";
 import cookieParser = require("cookie-parser");
 import { retroMiddleware } from "./retro-middleware";
+import { WebsiteAttributes } from "./types";
 
 const app = express();
 
@@ -122,20 +128,43 @@ function withAbsoluteUrl<
 }
 
 /**
+ * Resolve widget embed owner. "anonymous" is a synthetic non-member id.
+ */
+async function resolveWidgetOwner(
+  id: string
+): Promise<WebsiteAttributes | null> {
+  if (isAnonymousWidgetId(id)) return anonymousWidgetSite();
+  return db.getWebsite(id);
+}
+
+/**
+ * Ring cursor for prev/next. Anonymous embeds walk from the currently cached
+ * banner target (or a fresh random) so no-JS / first-click still works.
+ */
+async function resolveRingCursor(
+  id: string,
+  isVintage: boolean
+): Promise<string> {
+  if (!isAnonymousWidgetId(id)) return id;
+  const cached = await getCachedWidgetData(anonymousWidgetSite(), isVintage);
+  return cached.targetWebsiteId;
+}
+
+/**
  * Member routes
  */
 
 app.get("/member/:website/next/navigate", async (req, res) => {
-  const website = req.params.website;
-  const result = await db.getNextWebsite(website, req.isOldBrowser);
+  const cursor = await resolveRingCursor(req.params.website, req.isOldBrowser);
+  const result = await db.getNextWebsite(cursor, req.isOldBrowser);
   res.redirect(
     normalizeExternalUrl(result.url, { preferHttp: result.isVintage })
   );
 });
 
 app.get("/member/:website/previous/navigate", async (req, res) => {
-  const website = req.params.website;
-  const result = await db.getPreviousWebsite(website, req.isOldBrowser);
+  const cursor = await resolveRingCursor(req.params.website, req.isOldBrowser);
+  const result = await db.getPreviousWebsite(cursor, req.isOldBrowser);
   res.redirect(
     normalizeExternalUrl(result.url, { preferHttp: result.isVintage })
   );
@@ -143,7 +172,8 @@ app.get("/member/:website/previous/navigate", async (req, res) => {
 
 app.get("/member/:website/random/navigate", async (req, res) => {
   const website = req.params.website;
-  const random = await db.getRandomWebsite(req.isOldBrowser, website);
+  const exclude = isAnonymousWidgetId(website) ? "" : website;
+  const random = await db.getRandomWebsite(req.isOldBrowser, exclude);
   // Same as previous/next: leave for the member site (no-JS / vintage fallback).
   res.redirect(
     normalizeExternalUrl(random.url, { preferHttp: random.isVintage })
@@ -155,23 +185,26 @@ app.get("/member/:website/random/navigate", async (req, res) => {
  */
 
 app.get("/api/member/:website/next", async (req, res) => {
-  const website = req.params.website;
-  const result = await db.getNextWebsite(website, req.isOldBrowser);
-  setCachedWidgetTarget(website, result.id, req.isOldBrowser);
+  const embedId = req.params.website;
+  const cursor = await resolveRingCursor(embedId, req.isOldBrowser);
+  const result = await db.getNextWebsite(cursor, req.isOldBrowser);
+  setCachedWidgetTarget(embedId, result.id, req.isOldBrowser);
   res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/previous", async (req, res) => {
-  const website = req.params.website;
-  const result = await db.getPreviousWebsite(website, req.isOldBrowser);
-  setCachedWidgetTarget(website, result.id, req.isOldBrowser);
+  const embedId = req.params.website;
+  const cursor = await resolveRingCursor(embedId, req.isOldBrowser);
+  const result = await db.getPreviousWebsite(cursor, req.isOldBrowser);
+  setCachedWidgetTarget(embedId, result.id, req.isOldBrowser);
   res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/random", async (req, res) => {
-  const website = req.params.website;
-  const random = await db.getRandomWebsite(req.isOldBrowser, website);
-  setCachedWidgetTarget(website, random.id, req.isOldBrowser);
+  const embedId = req.params.website;
+  const exclude = isAnonymousWidgetId(embedId) ? "" : embedId;
+  const random = await db.getRandomWebsite(req.isOldBrowser, exclude);
+  setCachedWidgetTarget(embedId, random.id, req.isOldBrowser);
   res.send(withAbsoluteUrl(random));
 });
 
@@ -216,8 +249,7 @@ app.get("/widget/widget.js", (req, res) => {
 app.get("/widget/:website", async (req, res) => {
   // Used by widget.js on modern browsers to sync href/img to the cached target.
   // Does not force a new pick — /image already did that for this page view.
-  const id = req.params.website;
-  const current = await db.getWebsite(id);
+  const current = await resolveWidgetOwner(req.params.website);
   if (!current) {
     return res.sendStatus(404);
   }
@@ -242,8 +274,7 @@ app.get("/widget/:website/navigate", async (req, res) => {
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", 0);
 
-  const id = req.params.website;
-  const current = await db.getWebsite(id);
+  const current = await resolveWidgetOwner(req.params.website);
   if (!current) {
     return res.status(404).send("Website not found");
   }
@@ -264,15 +295,17 @@ app.get("/widget/:website/image", async (req, res) => {
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", 0);
 
-  const id = req.params.website;
-  const current = await db.getWebsite(id);
+  const current = await resolveWidgetOwner(req.params.website);
   if (!current) {
     return res.sendStatus(404);
   }
 
   // Modern: new random target every image load (every page view).
-  // Vintage: reuse pairing for ~2 hours so banner + click stay matched without JS.
-  await updateCacheForSite(current, req.isOldBrowser, !req.isOldBrowser);
+  // Vintage members: reuse pairing for ~2 hours so banner + click stay matched without JS.
+  // Anonymous share widgets always refresh — one shared cache key serves every embedder.
+  const forceNew =
+    !req.isOldBrowser || isAnonymousWidgetId(current.id);
+  await updateCacheForSite(current, req.isOldBrowser, forceNew);
 
   const target = await getCachedWidgetData(current, req.isOldBrowser);
   const website = await db.getWebsite(target.targetWebsiteId);
@@ -410,8 +443,21 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
 app.get("/widget", async (req, res) => {
   const websiteId = String(req.query.websiteId || "").trim();
 
-  if (!websiteId) {
-    res.render("widget", {});
+  const anonymousBannerWidget = generateAnonymousBannerWidget();
+  const anonymousBannerWidgetPreview = generateAnonymousBannerWidgetPreview();
+  const anonymousTextOnlyWidget = generateAnonymousTextOnlyWidget();
+  const anonymousWidgets = {
+    showAnonymousWidgets: true,
+    anonymousBannerWidget,
+    anonymousBannerWidgetPreview,
+    anonymousTextOnlyWidget,
+  };
+
+  if (!websiteId || isAnonymousWidgetId(websiteId)) {
+    res.render("widget", {
+      websiteId: websiteId || "",
+      ...anonymousWidgets,
+    });
     return;
   }
 
@@ -422,6 +468,7 @@ app.get("/widget", async (req, res) => {
       res.render("widget", {
         error: "The website provided wasn't found.",
         websiteId,
+        ...anonymousWidgets,
       });
       return;
     }
@@ -442,6 +489,7 @@ app.get("/widget", async (req, res) => {
     res.status(500).render("widget", {
       error: "Something went wrong loading that widget.",
       websiteId,
+      ...anonymousWidgets,
     });
   }
 });
