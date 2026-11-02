@@ -22,11 +22,83 @@ export type GeneratedBanner = {
   hasFavicon: boolean;
 };
 
-const BANNER_BG = { r: 221, g: 221, b: 221 };
-/** Top/left/bottom frame is 2px — icon height = banner − 4, inset 2px. */
+type Rgb = { r: number; g: number; b: number };
+
+const BANNER_BG: Rgb = { r: 221, g: 221, b: 221 };
+/** Top/left/bottom inset for favicon strip. */
 const BORDER_PX = 2;
+/** Leave room for the right-side WEBRING mark on the transparent plate. */
+const TEXT_RIGHT_RESERVE = 150;
+/**
+ * Relative luminance above this → black text; at/below → white text.
+ * (WCAG relative luminance, mid-ish threshold for short banner type.)
+ */
+const TEXT_LUMINANCE_THRESHOLD = 0.55;
+
 const BG_GLOBE = path.join(__dirname, "../assets/site-banner-background.png");
-const BG_NOGLOBE = path.join(__dirname, "../assets/site-banner-noglobe.png");
+const BG_NOBG = path.join(__dirname, "../assets/site-banner-nobg.png");
+
+function relativeLuminance({ r, g, b }: Rgb): number {
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function textColorForBg(bg: Rgb): string {
+  return relativeLuminance(bg) > TEXT_LUMINANCE_THRESHOLD
+    ? "#000000"
+    : "#ffffff";
+}
+
+/** Most common opaque (quantized) color in the favicon — used as banner fill. */
+async function sampleFaviconDominantColor(faviconBuffer: Buffer): Promise<Rgb> {
+  const { data, info } = await sharp(faviconBuffer)
+    .ensureAlpha()
+    .resize(48, 48, { fit: "inside", kernel: sharp.kernel.nearest })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const buckets = new Map<
+    string,
+    { count: number; r: number; g: number; b: number }
+  >();
+  let bestKey = "";
+  let bestCount = 0;
+
+  for (let i = 0; i < data.length; i += info.channels) {
+    const a = info.channels === 4 ? data[i + 3] : 255;
+    if (a < 128) continue;
+    // 16-level buckets keep “predominant” stable on tiny noisy icons.
+    const r = data[i] & 0xf0;
+    const g = data[i + 1] & 0xf0;
+    const b = data[i + 2] & 0xf0;
+    const key = `${r},${g},${b}`;
+    const prev = buckets.get(key);
+    const next = prev
+      ? {
+          count: prev.count + 1,
+          r: prev.r + data[i],
+          g: prev.g + data[i + 1],
+          b: prev.b + data[i + 2],
+        }
+      : { count: 1, r: data[i], g: data[i + 1], b: data[i + 2] };
+    buckets.set(key, next);
+    if (next.count > bestCount) {
+      bestCount = next.count;
+      bestKey = key;
+    }
+  }
+
+  if (!bestKey || bestCount === 0) return { ...BANNER_BG };
+  const win = buckets.get(bestKey)!;
+  return {
+    r: Math.round(win.r / win.count),
+    g: Math.round(win.g / win.count),
+    b: Math.round(win.b / win.count),
+  };
+}
 
 async function tryLoadImageBuffer(url: string): Promise<Buffer | undefined> {
   try {
@@ -144,11 +216,12 @@ export async function getFavicon(url: string): Promise<Buffer | undefined> {
 
 async function buildPixelFaviconStrip(
   faviconBuffer: Buffer,
-  bannerHeight: number
+  bannerHeight: number,
+  flattenBg: Rgb = BANNER_BG
 ): Promise<{ png: Buffer; width: number; left: number; top: number }> {
   const flattened = await sharp(faviconBuffer)
     .ensureAlpha()
-    .flatten({ background: BANNER_BG })
+    .flatten({ background: flattenBg })
     .png()
     .toBuffer();
 
@@ -206,12 +279,13 @@ function insertText(
   y: number,
   textAlign: CanvasTextAlign = "left",
   width?: number,
-  height?: number
+  height?: number,
+  fillStyle: string = "#000000"
 ): TextPositions {
   context.font = font;
   context.textAlign = textAlign;
   context.textBaseline = "top";
-  context.fillStyle = "#000000";
+  context.fillStyle = fillStyle;
 
   if (width && context.measureText(text).width > width) {
     text = text.substring(0, text.length - 3) + "...";
@@ -221,20 +295,20 @@ function insertText(
     text += "...";
   }
   const measure = context.measureText(text);
-  const nw = width || measure.width + x;
-  const nh = height || measure.actualBoundingBoxDescent;
+  const measuredWidth = width || measure.width + x;
+  const measuredHeight = height || measure.actualBoundingBoxDescent;
   context.fillText(text, x, y);
 
   return {
     top: y,
     left: x,
-    bottom: y + nh,
-    right: x + nw,
+    bottom: y + measuredHeight,
+    right: x + measuredWidth,
   };
 }
 
 /**
- * New submissions: favicon → new left-icon template; no favicon → old stock template.
+ * New submissions: favicon → transparent plate + sampled bg; no favicon → classic globe.
  * Callers that regenerate existing members should skip saving when hasFavicon is false.
  */
 export async function generateBanner(
@@ -244,8 +318,13 @@ export async function generateBanner(
   const height = 60;
 
   const faviconBuffer = await getFavicon(website.url);
+  const bgColor = faviconBuffer
+    ? await sampleFaviconDominantColor(faviconBuffer)
+    : BANNER_BG;
+  const textFill = faviconBuffer ? textColorForBg(bgColor) : "#000000";
+
   const favStrip = faviconBuffer
-    ? await buildPixelFaviconStrip(faviconBuffer, height)
+    ? await buildPixelFaviconStrip(faviconBuffer, height, bgColor)
     : null;
 
   const textLeft = favStrip ? favStrip.left + favStrip.width + 8 : 45;
@@ -253,14 +332,14 @@ export async function generateBanner(
   const canvas = createCanvas(width, height);
   const context = canvas.getContext("2d");
 
-  context.fillStyle = `rgb(${BANNER_BG.r},${BANNER_BG.g},${BANNER_BG.b})`;
+  context.fillStyle = `rgb(${bgColor.r},${bgColor.g},${bgColor.b})`;
   context.fillRect(0, 0, width, height);
 
-  // Favicon sites use the noglobe plate; others keep the classic globe template.
-  const img = await loadImage(favStrip ? BG_NOGLOBE : BG_GLOBE);
+  // Favicon sites: transparent branding plate over sampled color; else classic globe.
+  const img = await loadImage(favStrip ? BG_NOBG : BG_GLOBE);
   context.drawImage(img, 0, 0, img.width, img.height);
 
-  const nameMaxWidth = width - 20 - textLeft;
+  const nameMaxWidth = width - TEXT_RIGHT_RESERVE - textLeft;
   const namePos = insertText(
     context,
     website.name,
@@ -269,7 +348,8 @@ export async function generateBanner(
     5,
     "left",
     nameMaxWidth,
-    18
+    18,
+    textFill
   );
 
   insertText(
@@ -277,7 +357,11 @@ export async function generateBanner(
     website.url,
     "bold 8pt Montserrat Regular",
     textLeft,
-    namePos.bottom
+    namePos.bottom,
+    "left",
+    nameMaxWidth,
+    undefined,
+    textFill
   );
 
   const rawBuffer = canvas.toBuffer("image/png");

@@ -25,7 +25,8 @@ export async function approveRequest(id: string) {
         id,
         name,
         url,
-        banner: downloaded,
+        banner: downloaded.filename,
+        bannerIsCustom: downloaded.bannerIsCustom,
         isVintage,
         approvalEmailed: false,
         // Keep original submission time as the site's createdAt when possible.
@@ -99,6 +100,7 @@ export async function updateWebsiteEntry(
   }
 
   let banner = existing.banner;
+  let bannerIsCustom = !!existing.bannerIsCustom;
   if (input.bannerAction === "url") {
     const bannerUrl = String(input.bannerUrl || "").trim();
     if (!bannerUrl) {
@@ -110,6 +112,7 @@ export async function updateWebsiteEntry(
         const savePath = path.join(__dirname, "../assets/banners", filename);
         await saveImage(buffer, savePath);
         banner = filename;
+        bannerIsCustom = true;
       } catch (e) {
         errors.push(
           `Could not download banner: ${(e as Error).message || "unknown error"}`
@@ -133,6 +136,7 @@ export async function updateWebsiteEntry(
         const savePath = path.join(__dirname, "../assets/banners", filename);
         await saveImage(generated.buffer, savePath);
         banner = filename;
+        bannerIsCustom = false;
       }
     } catch (e) {
       errors.push(
@@ -150,6 +154,7 @@ export async function updateWebsiteEntry(
     email,
     isVintage: !!input.isVintage,
     banner,
+    bannerIsCustom,
   });
 
   return { ok: true };

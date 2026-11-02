@@ -55,12 +55,18 @@
           Retro / vintage site
         </label>
 
-        <p class="hint">Current banner:</p>
+        <p class="hint">Current banner source:
+          @if (model.site.bannerIsCustom === true) {
+            <b>custom</b>
+          } else {
+            <b>auto</b>
+          }
+        </p>
         <div class="banner-preview">
           @if (model.site.banner) {
             <img src="/assets/banners/@model.site.banner?v=@model.cacheBust" alt="Current banner" />
           } else {
-            <span class="admin-mono">(no banner file)</span>
+            <span class="admin-mono">no banner file</span>
           }
         </div>
 

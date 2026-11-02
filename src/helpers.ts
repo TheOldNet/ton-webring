@@ -142,27 +142,41 @@ export async function downloadFile(fileUrl: string): Promise<Buffer> {
   return sImage.gif().toBuffer();
 }
 
-export async function downloadBanner(request: WebsiteRequestAttributes) {
+export type DownloadedBanner = {
+  filename: string;
+  /** True when we stored the submitter's own image URL (not our generator). */
+  bannerIsCustom: boolean;
+};
+
+export async function downloadBanner(
+  request: WebsiteRequestAttributes
+): Promise<DownloadedBanner> {
   const filename = request.id + ".gif";
+  const submittedUrl = String(request.banner || "").trim();
   let buffer: Buffer;
-  if (!request.banner) {
-    // New submission: favicon → new template; none → old stock template.
+  let bannerIsCustom = false;
+
+  if (!submittedUrl) {
+    // No URL from submitter → generate.
     buffer = (await generateBanner(request)).buffer;
+    bannerIsCustom = false;
   } else {
     try {
-      buffer = await downloadFile(request.banner);
+      buffer = await downloadFile(submittedUrl);
+      bannerIsCustom = true;
     } catch (e) {
       console.error(
-        `Banner download failed for ${request.id} (${request.banner}), generating fallback:`,
+        `Banner download failed for ${request.id} (${submittedUrl}), generating fallback:`,
         (e as Error).message || e
       );
       buffer = (await generateBanner(request)).buffer;
+      bannerIsCustom = false;
     }
   }
   const savePath = path.join(__dirname, "../assets/banners", filename);
   await saveImage(buffer, savePath);
 
-  return filename;
+  return { filename, bannerIsCustom };
 }
 
 export async function convertPng(buffer: Buffer) {

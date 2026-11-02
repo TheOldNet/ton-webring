@@ -48,6 +48,12 @@ export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    /** True = member/admin-supplied image; false = our generator. */
+    bannerIsCustom: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     description: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -127,6 +133,14 @@ export async function connect() {
     try {
       await sequelize.query(
         "ALTER TABLE websites ADD COLUMN approvalEmailed BOOLEAN NOT NULL DEFAULT 0"
+      );
+    } catch (_) {
+      /* column already exists */
+    }
+    // Default 1 (custom) so a naïve regen won't overwrite unknown legacy banners.
+    try {
+      await sequelize.query(
+        "ALTER TABLE websites ADD COLUMN bannerIsCustom BOOLEAN NOT NULL DEFAULT 1"
       );
     } catch (_) {
       /* column already exists */
@@ -360,7 +374,13 @@ export async function updateWebsite(
   fields: Partial<
     Pick<
       WebsiteAttributes,
-      "name" | "url" | "description" | "email" | "banner" | "isVintage"
+      | "name"
+      | "url"
+      | "description"
+      | "email"
+      | "banner"
+      | "bannerIsCustom"
+      | "isVintage"
     >
   >,
   t?: Transaction

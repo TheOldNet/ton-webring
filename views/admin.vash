@@ -70,6 +70,14 @@
                   <span>NO</span>
                 }
               </div>
+              <div class="admin-row-flag">
+                <span class="admin-row-flag-label">Banner</span>
+                @if (request.banner) {
+                  <span>custom URL</span>
+                } else {
+                  <span>auto</span>
+                }
+              </div>
               <div class="admin-table-actions">
                 <form action="/admin_action" method="POST" onsubmit="return validateDeny(this);">
                   <input type="hidden" name="id" value="@request.id" />
@@ -141,6 +149,14 @@
                   <span>YES</span>
                 } else {
                   <span>NO</span>
+                }
+              </div>
+              <div class="admin-row-flag">
+                <span class="admin-row-flag-label">Banner</span>
+                @if (site.bannerIsCustom === true) {
+                  <span>custom</span>
+                } else {
+                  <span>auto</span>
                 }
               </div>
               <div class="admin-table-actions">
