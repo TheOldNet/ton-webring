@@ -181,6 +181,47 @@
       })
     </table>
     </div>
+    <script>
+      (function () {
+        var KEY = 'tonWebringAdminScroll';
+        function save() {
+          try {
+            sessionStorage.setItem(KEY, String(window.scrollY || window.pageYOffset || 0));
+          } catch (e) {}
+        }
+        function restore() {
+          try {
+            var raw = sessionStorage.getItem(KEY);
+            if (raw == null || raw === '') return;
+            var y = parseInt(raw, 10);
+            if (!isFinite(y) || y < 0) return;
+            window.scrollTo(0, y);
+          } catch (e) {}
+        }
+        window.addEventListener('pagehide', save);
+        window.addEventListener('beforeunload', save);
+        document.addEventListener('click', function (ev) {
+          var t = ev.target;
+          if (!t) return;
+          var a = t.closest ? t.closest('a[href]') : null;
+          if (a) save();
+        });
+        document.addEventListener('submit', save);
+        // Restore after layout; again after images so row heights settle.
+        function scheduleRestore() {
+          requestAnimationFrame(function () {
+            restore();
+            requestAnimationFrame(restore);
+          });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', scheduleRestore);
+        } else {
+          scheduleRestore();
+        }
+        window.addEventListener('load', restore);
+      })();
+    </script>
     </div>
   })
 })

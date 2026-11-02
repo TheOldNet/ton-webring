@@ -27,8 +27,13 @@ type Rgb = { r: number; g: number; b: number };
 const BANNER_BG: Rgb = { r: 221, g: 221, b: 221 };
 /** Top/left/bottom inset for favicon strip. */
 const BORDER_PX = 2;
-/** Leave room for the right-side WEBRING mark on the transparent plate. */
-const TEXT_RIGHT_RESERVE = 150;
+/** Leave room for the right-side WEBRING mark (text must not enter this zone). */
+const TEXT_RIGHT_RESERVE = 120;
+/** Vertical gap between title / description / bottom-anchored URL. */
+const TEXT_ROW_GAP = 3;
+/** URL row height + bottom padding — URL is pinned to the banner bottom. */
+const URL_BOTTOM_PAD = 3;
+const URL_LINE_H = 9;
 /**
  * Relative luminance above this → black text; at/below → white text.
  * (WCAG relative luminance, mid-ish threshold for short banner type.)
@@ -307,6 +312,102 @@ function insertText(
   };
 }
 
+function ellipsizeToWidth(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string {
+  if (context.measureText(text).width <= maxWidth) return text;
+  let t = text;
+  while (t.length > 0 && context.measureText(t + "...").width > maxWidth) {
+    t = t.slice(0, -1);
+  }
+  return t.length ? t + "..." : "";
+}
+
+/** Word-wrap into up to maxLines; last line gets … if content remains. */
+function layoutDescriptionLines(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number
+): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (!words.length || maxLines < 1) return [];
+
+  const lines: string[] = [];
+  let i = 0;
+  while (i < words.length && lines.length < maxLines) {
+    let line = words[i++];
+    while (i < words.length) {
+      const trial = `${line} ${words[i]}`;
+      if (context.measureText(trial).width <= maxWidth) {
+        line = trial;
+        i++;
+      } else {
+        break;
+      }
+    }
+    const isLastSlot = lines.length === maxLines - 1;
+    if (isLastSlot && i < words.length) {
+      lines.push(
+        ellipsizeToWidth(context, `${line} ${words.slice(i).join(" ")}`, maxWidth)
+      );
+      break;
+    }
+    lines.push(
+      context.measureText(line).width > maxWidth
+        ? ellipsizeToWidth(context, line, maxWidth)
+        : line
+    );
+  }
+  return lines;
+}
+
+/**
+ * Description under the title (row 2). Short → one 8pt line; long → up to two
+ * 7pt lines with ellipsis. `maxBottom` leaves room for the smaller URL row.
+ */
+function insertDescription(
+  context: CanvasRenderingContext2D,
+  description: string | undefined,
+  x: number,
+  y: number,
+  maxWidth: number,
+  maxBottom: number,
+  fillStyle: string
+): TextPositions {
+  const empty: TextPositions = { top: y, left: x, bottom: y, right: x };
+  const text = String(description || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text || maxWidth < 20 || y >= maxBottom) return empty;
+
+  context.textAlign = "left";
+  context.textBaseline = "top";
+  context.fillStyle = fillStyle;
+
+  context.font = "bold 8pt Montserrat Regular";
+  if (context.measureText(text).width <= maxWidth) {
+    context.fillText(text, x, y);
+    return { top: y, left: x, bottom: y + 11, right: x + maxWidth };
+  }
+
+  const lineH = 10;
+  const maxLines = y + lineH * 2 <= maxBottom + 1 ? 2 : 1;
+  context.font = "bold 7pt Montserrat Regular";
+  const lines = layoutDescriptionLines(context, text, maxWidth, maxLines);
+  for (let i = 0; i < lines.length; i++) {
+    context.fillText(lines[i], x, y + i * lineH);
+  }
+  return {
+    top: y,
+    left: x,
+    bottom: y + Math.max(1, lines.length) * lineH,
+    right: x + maxWidth,
+  };
+}
+
 /**
  * New submissions: favicon → transparent plate + sampled bg; no favicon → classic globe.
  * Callers that regenerate existing members should skip saving when hasFavicon is false.
@@ -339,28 +440,42 @@ export async function generateBanner(
   const img = await loadImage(favStrip ? BG_NOBG : BG_GLOBE);
   context.drawImage(img, 0, 0, img.width, img.height);
 
-  const nameMaxWidth = width - TEXT_RIGHT_RESERVE - textLeft;
+  const textMaxWidth = width - TEXT_RIGHT_RESERVE - textLeft;
+  const urlTop = height - URL_BOTTOM_PAD - URL_LINE_H;
+
   const namePos = insertText(
     context,
     website.name,
     "bold 12pt Montserrat Regular",
     textLeft,
-    5,
+    4,
     "left",
-    nameMaxWidth,
-    18,
+    textMaxWidth,
+    15,
     textFill
   );
 
+  // Row 2: description — sits under the title; URL stays pinned below any leftover gap.
+  insertDescription(
+    context,
+    website.description,
+    textLeft,
+    namePos.bottom + TEXT_ROW_GAP,
+    textMaxWidth,
+    urlTop - TEXT_ROW_GAP,
+    textFill
+  );
+
+  // Row 3: URL anchored to the bottom (empty space above when description is short/missing).
   insertText(
     context,
     website.url,
-    "bold 8pt Montserrat Regular",
+    "bold 6pt Montserrat Regular",
     textLeft,
-    namePos.bottom,
+    urlTop,
     "left",
-    nameMaxWidth,
-    undefined,
+    textMaxWidth,
+    URL_LINE_H,
     textFill
   );
 
