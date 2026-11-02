@@ -21,6 +21,8 @@ export type WebsiteAttributes = {
   lastEmbedSeenAt?: Date | string | null;
   /** Referer (embedding page) from the most recent image load. */
   lastEmbedReferer?: string | null;
+  /** How many times `/widget/{id}/image` has been loaded (embed impressions). */
+  embedImageLoads?: number;
   order?: number;
   createdAt?: Date | string;
   updatedAt?: Date | string;

@@ -84,6 +84,11 @@ export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    embedImageLoads: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
     order: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -202,6 +207,13 @@ export async function connect() {
     try {
       await sequelize.query(
         "ALTER TABLE websites ADD COLUMN lastEmbedReferer TEXT"
+      );
+    } catch (_) {
+      /* column already exists */
+    }
+    try {
+      await sequelize.query(
+        "ALTER TABLE websites ADD COLUMN embedImageLoads INTEGER NOT NULL DEFAULT 0"
       );
     } catch (_) {
       /* column already exists */
@@ -460,19 +472,69 @@ export async function websiteUrlTakenByOther(
   return count > 0;
 }
 
-/** Record that a member's widget image was loaded (presence signal). */
+/** Record that a member's widget image was loaded (presence + impression count). */
 export async function touchEmbedSeen(
   id: string,
   referer: string | null
 ): Promise<void> {
-  await Websites.update(
-    {
-      lastEmbedSeenAt: new Date(),
-      lastEmbedReferer: referer,
-      hasWidget: true,
-    },
-    { where: { id } }
-  );
+  // Raw SQL: Sequelize.literal increments can fail oddly on SQLite, and a
+  // missing column would otherwise abort the whole presence update.
+  const seenAt = new Date().toISOString();
+  try {
+    await sequelize.query(
+      `UPDATE websites
+       SET lastEmbedSeenAt = :seenAt,
+           lastEmbedReferer = :referer,
+           hasWidget = 1,
+           embedImageLoads = COALESCE(embedImageLoads, 0) + 1,
+           updatedAt = :seenAt
+       WHERE id = :id`,
+      { replacements: { id, seenAt, referer } }
+    );
+  } catch (err: any) {
+    const msg = String(err && err.message ? err.message : err);
+    if (/no such column: embedImageLoads/i.test(msg)) {
+      try {
+        await sequelize.query(
+          "ALTER TABLE websites ADD COLUMN embedImageLoads INTEGER NOT NULL DEFAULT 0"
+        );
+      } catch (_) {
+        /* race: already added */
+      }
+      await sequelize.query(
+        `UPDATE websites
+         SET lastEmbedSeenAt = :seenAt,
+             lastEmbedReferer = :referer,
+             hasWidget = 1,
+             embedImageLoads = COALESCE(embedImageLoads, 0) + 1,
+             updatedAt = :seenAt
+         WHERE id = :id`,
+        { replacements: { id, seenAt, referer } }
+      );
+      return;
+    }
+    throw err;
+  }
+}
+
+/** Members with the most widget image loads (embed impressions). */
+export async function getTopEmbedImpressions(
+  limit: number = 25
+): Promise<{ id: string; name: string; embedImageLoads: number }[]> {
+  const rows = await Websites.findAll({
+    attributes: ["id", "name", "embedImageLoads"],
+    where: { embedImageLoads: { [Op.gt]: 0 } },
+    order: [["embedImageLoads", "DESC"]],
+    limit: Math.max(1, Math.min(100, limit | 0)),
+  });
+  return rows.map((r) => {
+    const j = r.toJSON() as WebsiteAttributes;
+    return {
+      id: j.id,
+      name: j.name,
+      embedImageLoads: Number(j.embedImageLoads) || 0,
+    };
+  });
 }
 
 export async function createAnalyticsEvent(

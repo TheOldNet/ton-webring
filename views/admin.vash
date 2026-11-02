@@ -115,6 +115,7 @@
           <th>Emailed?</th>
           <th>Has Embed</th>
           <th>Last Embed Seen</th>
+          <th>Embed Loads</th>
           <th>Embed Page</th>
           <th>Banner</th>
           <th>Is Retro</th>
@@ -145,6 +146,7 @@
             }
           </td>
           <td class="admin-mono admin-col-embed-seen">@site.lastEmbedSeenAt</td>
+          <td class="admin-mono">@site.embedImageLoads</td>
           <td class="admin-col-embed-page">
             @if (site.lastEmbedReferer) {
               <a href="@site.lastEmbedReferer" target="_blank" rel="noopener noreferrer" title="@site.lastEmbedReferer">@site.lastEmbedReferer</a>

@@ -666,16 +666,18 @@ app.get("/admin", authorization, async (_, res) => {
     approvalEmailed: !!s.approvalEmailed,
     lastEmbedSeenAt: formatAdminDateTime(s.lastEmbedSeenAt),
     lastEmbedReferer: s.lastEmbedReferer || "",
+    embedImageLoads: Number(s.embedImageLoads) || 0,
   }));
   return res.render("admin", { requests, current });
 });
 
 app.get("/admin/analytics", authorization, async (_, res) => {
-  const [typeCounts, topDestinations, topEmbedders, recent] =
+  const [typeCounts, topDestinations, topEmbedders, topImpressions, recent] =
     await Promise.all([
       db.getAnalyticsTypeCounts(),
       db.getTopDestinations(25),
       db.getTopEmbedders(25),
+      db.getTopEmbedImpressions(25),
       db.getRecentAnalyticsEvents(150),
     ]);
   const siteNameById: Record<string, string> = {};
@@ -702,10 +704,11 @@ app.get("/admin/analytics", authorization, async (_, res) => {
     name: siteNameById[d.fromWebsiteId] || d.fromWebsiteId,
   }));
   return res.render("analytics", {
-    typeCounts,
-    destRows,
-    embedderRows,
-    recentRows,
+    typeCounts: typeCounts || [],
+    destRows: destRows || [],
+    embedderRows: embedderRows || [],
+    impressionRows: topImpressions || [],
+    recentRows: recentRows || [],
   });
 });
 

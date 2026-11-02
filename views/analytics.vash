@@ -21,15 +21,45 @@
         </tr>
       </thead>
       <tbody>
-      @if (!model.typeCounts || model.typeCounts.length === 0) {
+      @if (model.typeCounts && model.typeCounts.length > 0) {
+        @model.typeCounts.forEach(function (row) {
+          <tr>
+            <td class="admin-mono">@row.type</td>
+            <td>@row.count</td>
+          </tr>
+        })
+      } else {
         <tr><td colspan="2">No events yet.</td></tr>
       }
-      @model.typeCounts.forEach(function (row) {
+      </tbody>
+    </table>
+    </div>
+
+    <h2>Top embed impressions</h2>
+    <p class="admin-analytics-note">
+      Times each member’s <code>/widget/…/image</code> was loaded (people who saw the embed, whether or not they clicked).
+    </p>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
         <tr>
-          <td class="admin-mono">@row.type</td>
-          <td>@row.count</td>
+          <th>Embed owner</th>
+          <th>ID</th>
+          <th>Image loads</th>
         </tr>
-      })
+      </thead>
+      <tbody>
+      @if (model.impressionRows && model.impressionRows.length > 0) {
+        @model.impressionRows.forEach(function (row) {
+          <tr>
+            <td>@row.name</td>
+            <td class="admin-mono">@row.id</td>
+            <td>@row.embedImageLoads</td>
+          </tr>
+        })
+      } else {
+        <tr><td colspan="3">No image loads recorded yet.</td></tr>
+      }
       </tbody>
     </table>
     </div>
@@ -37,7 +67,6 @@
     <h2>Top embedders</h2>
     <p class="admin-analytics-note">
       Members whose embed drives the most outbound clicks (banner click or Previous/Next/Random leave).
-      In-place modern nav swaps are not counted here.
     </p>
     <div class="admin-table-wrap">
     <table class="admin-table">
@@ -49,16 +78,17 @@
         </tr>
       </thead>
       <tbody>
-      @if (!model.embedderRows || model.embedderRows.length === 0) {
+      @if (model.embedderRows && model.embedderRows.length > 0) {
+        @model.embedderRows.forEach(function (row) {
+          <tr>
+            <td>@row.name</td>
+            <td class="admin-mono">@row.fromWebsiteId</td>
+            <td>@row.count</td>
+          </tr>
+        })
+      } else {
         <tr><td colspan="3">No outbound clicks yet.</td></tr>
       }
-      @model.embedderRows.forEach(function (row) {
-        <tr>
-          <td>@row.name</td>
-          <td class="admin-mono">@row.fromWebsiteId</td>
-          <td>@row.count</td>
-        </tr>
-      })
       </tbody>
     </table>
     </div>
@@ -74,16 +104,17 @@
         </tr>
       </thead>
       <tbody>
-      @if (!model.destRows || model.destRows.length === 0) {
+      @if (model.destRows && model.destRows.length > 0) {
+        @model.destRows.forEach(function (row) {
+          <tr>
+            <td>@row.name</td>
+            <td class="admin-mono">@row.toWebsiteId</td>
+            <td>@row.count</td>
+          </tr>
+        })
+      } else {
         <tr><td colspan="3">No destinations yet.</td></tr>
       }
-      @model.destRows.forEach(function (row) {
-        <tr>
-          <td>@row.name</td>
-          <td class="admin-mono">@row.toWebsiteId</td>
-          <td>@row.count</td>
-        </tr>
-      })
       </tbody>
     </table>
     </div>
@@ -103,38 +134,39 @@
         </tr>
       </thead>
       <tbody>
-      @if (!model.recentRows || model.recentRows.length === 0) {
+      @if (model.recentRows && model.recentRows.length > 0) {
+        @model.recentRows.forEach(function (row) {
+          <tr>
+            <td class="admin-mono">@row.when</td>
+            <td class="admin-mono">@row.type</td>
+            <td>@row.fromName</td>
+            <td>@row.toName</td>
+            <td class="admin-col-embed-page">
+              @if (row.toUrl) {
+                <a href="@row.toUrl" target="_blank" rel="noopener noreferrer">@row.toUrl</a>
+              } else {
+                <span>—</span>
+              }
+            </td>
+            <td class="admin-col-embed-page">
+              @if (row.referer) {
+                <a href="@row.referer" target="_blank" rel="noopener noreferrer" title="@row.referer">@row.referer</a>
+              } else {
+                <span>—</span>
+              }
+            </td>
+            <td>
+              @if (row.isOldBrowser === true) {
+                <span>YES</span>
+              } else {
+                <span>NO</span>
+              }
+            </td>
+          </tr>
+        })
+      } else {
         <tr><td colspan="7">No events yet.</td></tr>
       }
-      @model.recentRows.forEach(function (row) {
-        <tr>
-          <td class="admin-mono">@row.when</td>
-          <td class="admin-mono">@row.type</td>
-          <td>@row.fromName</td>
-          <td>@row.toName</td>
-          <td class="admin-col-embed-page">
-            @if (row.toUrl) {
-              <a href="@row.toUrl" target="_blank" rel="noopener noreferrer">@row.toUrl</a>
-            } else {
-              <span>—</span>
-            }
-          </td>
-          <td class="admin-col-embed-page">
-            @if (row.referer) {
-              <a href="@row.referer" target="_blank" rel="noopener noreferrer" title="@row.referer">@row.referer</a>
-            } else {
-              <span>—</span>
-            }
-          </td>
-          <td>
-            @if (row.isOldBrowser === true) {
-              <span>YES</span>
-            } else {
-              <span>NO</span>
-            }
-          </td>
-        </tr>
-      })
       </tbody>
     </table>
     </div>
