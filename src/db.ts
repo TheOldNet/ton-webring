@@ -76,8 +76,10 @@ export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
       allowNull: false,
       defaultValue: false,
     },
+    // TEXT not DATE: raw ISO / SQLite strings must round-trip; DataTypes.DATE
+    // drops values like "2026-11-02T22:08:55.915Z" on read → admin shows "—".
     lastEmbedSeenAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     lastEmbedReferer: {
@@ -472,14 +474,19 @@ export async function websiteUrlTakenByOther(
   return count > 0;
 }
 
+/** UTC wall time SQLite/Sequelize accept for DATETIME-ish columns (no T/Z). */
+function sqliteUtcTimestamp(d: Date = new Date()): string {
+  return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
+}
+
 /** Record that a member's widget image was loaded (presence + impression count). */
 export async function touchEmbedSeen(
   id: string,
   referer: string | null
 ): Promise<void> {
-  // Raw SQL: Sequelize.literal increments can fail oddly on SQLite, and a
-  // missing column would otherwise abort the whole presence update.
-  const seenAt = new Date().toISOString();
+  // Raw SQL so embedImageLoads increments atomically. Avoid ISO-8601 "…Z" —
+  // Sequelize DataTypes.DATE on SQLite fails to read those back (admin "—").
+  const seenAt = sqliteUtcTimestamp();
   try {
     await sequelize.query(
       `UPDATE websites

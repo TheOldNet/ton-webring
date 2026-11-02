@@ -122,8 +122,19 @@ export function formatAdminDate(value: unknown): string {
 
 /** UTC datetime for admin (e.g. last embed seen). */
 export function formatAdminDateTime(value: unknown): string {
-  if (!value) return "—";
-  const d = value instanceof Date ? value : new Date(String(value));
+  if (value == null || value === "") return "—";
+  if (value instanceof Date && Number.isNaN(value.getTime())) return "—";
+  let d: Date;
+  if (value instanceof Date) {
+    d = value;
+  } else {
+    const raw = String(value).trim();
+    // Prefer parsing known SQLite / ISO shapes explicitly.
+    d = new Date(raw);
+    if (Number.isNaN(d.getTime()) && /^\d{4}-\d{2}-\d{2} /.test(raw)) {
+      d = new Date(raw.replace(" ", "T") + (/[zZ]|[+-]\d{2}/.test(raw) ? "" : "Z"));
+    }
+  }
   if (Number.isNaN(d.getTime())) return "—";
   return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
 }
