@@ -96,47 +96,20 @@ body.admin-modern {
   word-break: break-word;
 }
 
-/* Pair primary text row + secondary banner/actions row as one site card */
-.admin-row-primary td {
-  border-bottom-color: transparent;
-}
-
-.admin-row-secondary td {
-  border-top: none;
-  padding-top: 0.15rem;
-}
-
-.admin-row-secondary-inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem 1rem;
-}
-
-.admin-row-flag {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  white-space: nowrap;
-  font-size: 0.9rem;
-}
-
+/* Labels are for screen readers / future use; headers name the columns. */
 .admin-row-flag-label {
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: none;
 }
 
 .admin-table-banner {
-  flex: 0 1 auto;
-  min-width: 0;
+  width: 1%;
+  white-space: nowrap;
 }
 
-/* Classic webring banner box — clamps oversized request image URLs */
+/* Full classic webring banner size — table wraps horizontally if needed */
 .admin-table-banner img {
   display: block;
   width: 468px;
-  max-width: 100%;
   height: 60px;
   object-fit: contain;
   object-position: left center;
@@ -144,102 +117,19 @@ body.admin-modern {
 }
 
 .admin-table-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.5rem;
-  margin-left: auto;
+  white-space: nowrap;
 }
 
 .admin-table-actions form {
   display: inline;
-  margin: 0;
+  margin: 0 0.15rem 0 0;
 }
 
 .admin-table-actions input[type="submit"] {
   font: inherit;
   font-size: 0.85rem;
-  margin: 0;
+  margin: 0.1rem 0;
   cursor: pointer;
-}
-
-@media (max-width: 900px) {
-  .admin-table-wrap {
-    overflow-x: visible;
-  }
-
-  .admin-table,
-  .admin-table thead,
-  .admin-table tbody,
-  .admin-table tr,
-  .admin-table th,
-  .admin-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .admin-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .admin-row-primary {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.35rem 0.75rem;
-    padding: 0.75rem 0.65rem 0.25rem;
-    border-bottom: none;
-  }
-
-  .admin-row-primary td {
-    border: none;
-    padding: 0.15rem 0;
-  }
-
-  /* Submitted/Approved + ID on first line; URL/title span full width */
-  .admin-table--requests .admin-row-primary td:nth-child(3),
-  .admin-table--requests .admin-row-primary td:nth-child(4),
-  .admin-table--requests .admin-row-primary td:nth-child(5),
-  .admin-table--requests .admin-row-primary td:nth-child(6),
-  .admin-table--sites .admin-row-primary td:nth-child(3),
-  .admin-table--sites .admin-row-primary td:nth-child(4),
-  .admin-table--sites .admin-row-primary td:nth-child(5),
-  .admin-table--sites .admin-row-primary td:nth-child(6) {
-    grid-column: 1 / -1;
-  }
-
-  .admin-row-secondary {
-    padding: 0 0.65rem 0.85rem;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 0;
-  }
-
-  .admin-row-secondary td {
-    border: none;
-    padding: 0;
-  }
-
-  .admin-row-secondary-inner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .admin-table-actions {
-    margin-left: 0;
-  }
-
-  .admin-table-banner img {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 468 / 60;
-  }
 }
 
 .admin-card {
