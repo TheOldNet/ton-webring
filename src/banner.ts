@@ -57,7 +57,15 @@ function textColorForBg(bg: Rgb): string {
     : "#ffffff";
 }
 
-/** Most common opaque (quantized) color in the favicon — used as banner fill. */
+function invertRgb({ r, g, b }: Rgb): Rgb {
+  return { r: 255 - r, g: 255 - g, b: 255 - b };
+}
+
+/**
+ * Most common opaque color in the favicon — used as banner fill.
+ * Near-monochrome icons (e.g. black glyph on transparency) would vanish on a
+ * matching fill, so in that case we invert for contrast.
+ */
 async function sampleFaviconDominantColor(faviconBuffer: Buffer): Promise<Rgb> {
   const { data, info } = await sharp(faviconBuffer)
     .ensureAlpha()
@@ -71,24 +79,42 @@ async function sampleFaviconDominantColor(faviconBuffer: Buffer): Promise<Rgb> {
   >();
   let bestKey = "";
   let bestCount = 0;
+  let opaque = 0;
+  let minR = 255,
+    minG = 255,
+    minB = 255;
+  let maxR = 0,
+    maxG = 0,
+    maxB = 0;
 
   for (let i = 0; i < data.length; i += info.channels) {
     const a = info.channels === 4 ? data[i + 3] : 255;
     if (a < 128) continue;
+    opaque++;
+    const pr = data[i];
+    const pg = data[i + 1];
+    const pb = data[i + 2];
+    if (pr < minR) minR = pr;
+    if (pg < minG) minG = pg;
+    if (pb < minB) minB = pb;
+    if (pr > maxR) maxR = pr;
+    if (pg > maxG) maxG = pg;
+    if (pb > maxB) maxB = pb;
+
     // 16-level buckets keep “predominant” stable on tiny noisy icons.
-    const r = data[i] & 0xf0;
-    const g = data[i + 1] & 0xf0;
-    const b = data[i + 2] & 0xf0;
+    const r = pr & 0xf0;
+    const g = pg & 0xf0;
+    const b = pb & 0xf0;
     const key = `${r},${g},${b}`;
     const prev = buckets.get(key);
     const next = prev
       ? {
           count: prev.count + 1,
-          r: prev.r + data[i],
-          g: prev.g + data[i + 1],
-          b: prev.b + data[i + 2],
+          r: prev.r + pr,
+          g: prev.g + pg,
+          b: prev.b + pb,
         }
-      : { count: 1, r: data[i], g: data[i + 1], b: data[i + 2] };
+      : { count: 1, r: pr, g: pg, b: pb };
     buckets.set(key, next);
     if (next.count > bestCount) {
       bestCount = next.count;
@@ -96,13 +122,113 @@ async function sampleFaviconDominantColor(faviconBuffer: Buffer): Promise<Rgb> {
     }
   }
 
-  if (!bestKey || bestCount === 0) return { ...BANNER_BG };
+  if (!bestKey || bestCount === 0 || opaque === 0) return { ...BANNER_BG };
   const win = buckets.get(bestKey)!;
-  return {
+  const dominant: Rgb = {
     r: Math.round(win.r / win.count),
     g: Math.round(win.g / win.count),
     b: Math.round(win.b / win.count),
   };
+
+  const channelSpan = Math.max(maxR - minR, maxG - minG, maxB - minB);
+  const dominantShare = bestCount / opaque;
+  // One (or nearly one) ink color — typical flat glyph on a transparent canvas.
+  const isMonochrome =
+    channelSpan <= 40 || (buckets.size <= 2 && dominantShare >= 0.9);
+
+  return isMonochrome ? invertRgb(dominant) : dominant;
+}
+
+/**
+ * Sharp often can't decode classic BMP-in-ICO favicons. Pull the largest
+ * 8/32-bpp entry into an RGBA PNG so we still use the site's real icon.
+ */
+async function icoBufferToPng(buf: Buffer): Promise<Buffer | undefined> {
+  try {
+    if (buf.length < 6) return undefined;
+    if (buf.readUInt16LE(0) !== 0 || buf.readUInt16LE(2) !== 1) return undefined;
+    const count = buf.readUInt16LE(4);
+    if (count < 1) return undefined;
+
+    let best: { area: number; rgba: Buffer; w: number; h: number } | null = null;
+
+    for (let i = 0; i < count; i++) {
+      const o = 6 + i * 16;
+      if (o + 16 > buf.length) break;
+      const size = buf.readUInt32LE(o + 8);
+      const offset = buf.readUInt32LE(o + 12);
+      if (offset + size > buf.length || size < 40) continue;
+      const dib = buf.slice(offset, offset + size);
+      const headerSize = dib.readUInt32LE(0);
+      if (headerSize < 40) continue;
+      const w = Math.abs(dib.readInt32LE(4));
+      const hTotal = Math.abs(dib.readInt32LE(8));
+      const h = Math.floor(hTotal / 2) || buf[o + 1] || 0;
+      const bpp = dib.readUInt16LE(14);
+      if (!w || !h) continue;
+
+      let rgba: Buffer | null = null;
+      if (bpp === 32) {
+        const pixels = dib.slice(headerSize, headerSize + w * h * 4);
+        if (pixels.length < w * h * 4) continue;
+        rgba = Buffer.alloc(w * h * 4);
+        for (let y = 0; y < h; y++) {
+          const srcY = h - 1 - y;
+          for (let x = 0; x < w; x++) {
+            const si = (srcY * w + x) * 4;
+            const di = (y * w + x) * 4;
+            rgba[di] = pixels[si + 2];
+            rgba[di + 1] = pixels[si + 1];
+            rgba[di + 2] = pixels[si];
+            rgba[di + 3] = pixels[si + 3];
+          }
+        }
+      } else if (bpp === 8) {
+        const paletteColors = dib.readUInt32LE(32) || 256;
+        const palOff = headerSize;
+        const palette = dib.slice(palOff, palOff + paletteColors * 4);
+        const xorOff = palOff + paletteColors * 4;
+        const rowSize = Math.ceil(w / 4) * 4;
+        rgba = Buffer.alloc(w * h * 4);
+        for (let y = 0; y < h; y++) {
+          const srcY = h - 1 - y;
+          for (let x = 0; x < w; x++) {
+            const idx = dib[xorOff + srcY * rowSize + x];
+            const pi = idx * 4;
+            const di = (y * w + x) * 4;
+            rgba[di] = palette[pi + 2];
+            rgba[di + 1] = palette[pi + 1];
+            rgba[di + 2] = palette[pi];
+            rgba[di + 3] = 255;
+          }
+        }
+        const andRow = Math.ceil(w / 32) * 4;
+        const andOff = xorOff + rowSize * h;
+        if (andOff + andRow * h <= dib.length) {
+          for (let y = 0; y < h; y++) {
+            const srcY = h - 1 - y;
+            for (let x = 0; x < w; x++) {
+              const byte = dib[andOff + srcY * andRow + (x >> 3)];
+              if ((byte >> (7 - (x & 7))) & 1) rgba[(y * w + x) * 4 + 3] = 0;
+            }
+          }
+        }
+      }
+
+      if (!rgba) continue;
+      const area = w * h;
+      if (!best || area > best.area) best = { area, rgba, w, h };
+    }
+
+    if (!best) return undefined;
+    return await sharp(best.rgba, {
+      raw: { width: best.w, height: best.h, channels: 4 },
+    })
+      .png()
+      .toBuffer();
+  } catch {
+    return undefined;
+  }
 }
 
 async function tryLoadImageBuffer(url: string): Promise<Buffer | undefined> {
@@ -125,10 +251,11 @@ async function tryLoadImageBuffer(url: string): Promise<Buffer | undefined> {
     if (ct.includes("text/html")) return undefined;
     try {
       await sharp(buf).metadata();
+      return buf;
     } catch {
-      return undefined;
+      // Classic .ico (BMP entries) — decode ourselves.
+      return await icoBufferToPng(buf);
     }
-    return buf;
   } catch {
     return undefined;
   }
@@ -206,7 +333,7 @@ export async function getFavicon(url: string): Promise<Buffer | undefined> {
   candidates.push(
     `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(
       pageUrl
-    )}&size=16`
+    )}&size=64`
   );
 
   const seen = new Set<string>();
@@ -224,32 +351,34 @@ async function buildPixelFaviconStrip(
   bannerHeight: number,
   flattenBg: Rgb = BANNER_BG
 ): Promise<{ png: Buffer; width: number; left: number; top: number }> {
-  const flattened = await sharp(faviconBuffer)
-    .ensureAlpha()
+  // Trim on alpha FIRST. Flattening before trim makes edge pixels match the
+  // banner color so trim eats the top/bottom of non-square logos.
+  const withAlpha = await sharp(faviconBuffer).ensureAlpha().png().toBuffer();
+  let trimmed: Buffer;
+  try {
+    trimmed = await sharp(withAlpha).trim({ threshold: 0 }).png().toBuffer();
+  } catch {
+    trimmed = withAlpha;
+  }
+
+  const flattened = await sharp(trimmed)
     .flatten({ background: flattenBg })
     .png()
     .toBuffer();
 
-  let trimmed: Buffer;
-  try {
-    trimmed = await sharp(flattened)
-      .trim({ threshold: 12 })
-      .png()
-      .toBuffer();
-  } catch {
-    trimmed = flattened;
-  }
-
-  const meta = await sharp(trimmed).metadata();
+  const meta = await sharp(flattened).metadata();
   const srcW = Math.max(1, meta.width || 16);
   const srcH = Math.max(1, meta.height || 16);
 
-  // Height minus 2px top + 2px bottom; placed at left/top = 2.
-  const drawH = Math.max(1, bannerHeight - BORDER_PX * 2);
-  const drawW = Math.max(1, Math.round(srcW * (drawH / srcH)));
-  const intScale = Math.max(1, Math.round(drawH / srcH));
+  // Contain inside the strip — preserve aspect (wide icons stay wide).
+  const maxH = Math.max(1, bannerHeight - BORDER_PX * 2);
+  const maxW = Math.max(maxH, Math.min(160, Math.round(maxH * 2.75)));
+  const fitScale = Math.min(maxW / srcW, maxH / srcH);
+  const drawW = Math.max(1, Math.round(srcW * fitScale));
+  const drawH = Math.max(1, Math.round(srcH * fitScale));
 
-  const mid = await sharp(trimmed)
+  const intScale = Math.max(1, Math.floor(fitScale));
+  const mid = await sharp(flattened)
     .resize(srcW * intScale, srcH * intScale, {
       kernel: sharp.kernel.nearest,
       fit: "fill",
@@ -258,21 +387,26 @@ async function buildPixelFaviconStrip(
     .toBuffer();
 
   const png =
-    srcH * intScale === drawH
+    srcW * intScale === drawW && srcH * intScale === drawH
       ? mid
       : await sharp(mid)
           .resize(drawW, drawH, {
             kernel: sharp.kernel.nearest,
-            fit: "fill",
+            fit: "inside",
+            withoutEnlargement: false,
           })
           .png()
           .toBuffer();
 
+  const outMeta = await sharp(png).metadata();
+  const outW = outMeta.width || drawW;
+  const outH = outMeta.height || drawH;
+
   return {
     png,
-    width: drawW,
+    width: outW,
     left: BORDER_PX,
-    top: BORDER_PX,
+    top: BORDER_PX + Math.max(0, Math.floor((maxH - outH) / 2)),
   };
 }
 
