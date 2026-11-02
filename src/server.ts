@@ -54,6 +54,8 @@ import {
   generateBannerWidgetPreview,
   generateTextOnlyWidget,
   isAnonymousWidgetId,
+  pendingRequestBannerSrc,
+  websiteFromRequest,
 } from "./widget";
 import {
   getCachedWidgetData,
@@ -131,25 +133,35 @@ function withAbsoluteUrl<
 }
 
 /**
- * Resolve widget embed owner. "anonymous" is a synthetic non-member id.
+ * Resolve widget embed owner. "anonymous" is synthetic; pending submissions
+ * (requests table) are allowed so embeds work before admin approval.
  */
 async function resolveWidgetOwner(
   id: string
 ): Promise<WebsiteAttributes | null> {
   if (isAnonymousWidgetId(id)) return anonymousWidgetSite();
-  return db.getWebsite(id);
+  const site = await db.getWebsite(id);
+  if (site) return site;
+  const request = await db.getRequest(id);
+  if (request && !request.denied) return websiteFromRequest(request);
+  return null;
 }
 
 /**
- * Ring cursor for prev/next. Anonymous embeds walk from the currently cached
- * banner target (or a fresh random) so no-JS / first-click still works.
+ * Ring cursor for prev/next. Anonymous / pending embeds walk from the currently
+ * cached banner target (or a fresh random) so no-JS / first-click still works.
  */
 async function resolveRingCursor(
   id: string,
   isVintage: boolean
 ): Promise<string> {
-  if (!isAnonymousWidgetId(id)) return id;
-  const cached = await getCachedWidgetData(anonymousWidgetSite(), isVintage);
+  if (!isAnonymousWidgetId(id)) {
+    const site = await db.getWebsite(id);
+    if (site) return id;
+  }
+  const owner =
+    (await resolveWidgetOwner(id)) || anonymousWidgetSite();
+  const cached = await getCachedWidgetData(owner, isVintage);
   return cached.targetWebsiteId;
 }
 
@@ -216,14 +228,15 @@ app.get("/member/:website/random/navigate", async (req, res) => {
  * Member JSON endpoints
  */
 
-function apiRingCursor(
+async function apiRingCursor(
   embedId: string,
   queryCursor: unknown,
   isVintage: boolean
 ): Promise<string> {
   const raw = queryCursor != null ? String(queryCursor).trim() : "";
   if (raw && !isAnonymousWidgetId(raw)) {
-    return Promise.resolve(raw);
+    const site = await db.getWebsite(raw);
+    if (site) return raw;
   }
   return resolveRingCursor(embedId, isVintage);
 }
@@ -518,7 +531,7 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
   }
 
   try {
-    await db.registerWebsiteRequest({
+    const websiteId = await db.registerWebsiteRequest({
       description,
       email,
       name: sitename.trim(),
@@ -527,7 +540,27 @@ app.post("/submit", recaptcha.middleware.verify, async (req, res) => {
       isVintage,
     });
 
-    res.render("submit-website", { success: true });
+    const requestAttrs = {
+      id: websiteId,
+      description,
+      email,
+      name: sitename.trim(),
+      url: normalizedSiteUrl,
+      banner: bannerurl.trim(),
+      isVintage,
+    };
+    const website = websiteFromRequest(requestAttrs);
+
+    res.render("submit-website", {
+      success: true,
+      websiteId,
+      website,
+      generatedBannerWidget: generateBannerWidget(website),
+      generatedBannerWidgetPreview: generateBannerWidgetPreview(website, {
+        ownBannerSrc: pendingRequestBannerSrc(requestAttrs),
+      }),
+      generatedTextOnlyWidget: generateTextOnlyWidget(website),
+    });
   } catch (ex) {
     console.log(ex);
     res.sendStatus(500);
@@ -556,7 +589,18 @@ app.get("/widget", async (req, res) => {
   }
 
   try {
-    const website = await db.getWebsite(websiteId);
+    let website = await db.getWebsite(websiteId);
+    let pendingApproval = false;
+    let pendingOwnBannerSrc: string | undefined;
+
+    if (!website) {
+      const request = await db.getRequest(websiteId);
+      if (request && !request.denied) {
+        website = websiteFromRequest(request);
+        pendingApproval = true;
+        pendingOwnBannerSrc = pendingRequestBannerSrc(request);
+      }
+    }
 
     if (!website) {
       res.render("widget", {
@@ -568,7 +612,10 @@ app.get("/widget", async (req, res) => {
     }
 
     const generatedBannerWidget = generateBannerWidget(website);
-    const generatedBannerWidgetPreview = generateBannerWidgetPreview(website);
+    const generatedBannerWidgetPreview = generateBannerWidgetPreview(
+      website,
+      pendingOwnBannerSrc ? { ownBannerSrc: pendingOwnBannerSrc } : undefined
+    );
     const generatedTextOnlyWidget = generateTextOnlyWidget(website);
 
     res.render("widget", {
@@ -577,6 +624,7 @@ app.get("/widget", async (req, res) => {
       generatedTextOnlyWidget,
       website,
       websiteId,
+      pendingApproval,
     });
   } catch (e) {
     console.error("widget page failed:", (e as Error).message || e);

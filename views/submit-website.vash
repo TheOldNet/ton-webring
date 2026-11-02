@@ -2,9 +2,46 @@
   @html.append('content', function () {
     @if (model.success === true) {
       <h1>Your website was submitted successfully!</h1>
-      <p>We'll be in touch when it's added to the webring</p>
-      <p>After that you'll be able to add the webring embed to your website</p>
-      <p>Websites that don't add the embed will be removed from the webring.</p>
+      <p>
+        <b>Your submission is subject to review and approval</b>, but you can
+        start using your webring embed today — paste the code below onto your
+        site now.
+      </p>
+      <p>
+        We'll email you when you're officially added to the webring.
+        Websites that don't add the embed may be removed.
+      </p>
+      <p>
+        Your Website Id:
+        <code>@model.websiteId</code>
+        (save this — you can also regenerate the code anytime at
+        <a href="/widget?websiteId=@model.websiteId">/widget</a>)
+      </p>
+
+      @if (model.generatedBannerWidget) {
+        <hr/>
+        <h2>Your Webring Embed</h2>
+        <h3>Banner Widget</h3>
+        <p>Copy this code and paste it on your website:</p>
+        <textarea cols="130" rows="10">@model.generatedBannerWidget</textarea>
+        <br>
+        <p>
+          Preview (on your site the widget shows <b>other</b> members so
+          visitors can discover them):
+        </p>
+        @html.raw(model.generatedBannerWidgetPreview)
+        <hr/>
+      }
+
+      @if (model.generatedTextOnlyWidget) {
+        <h3>Text Only Widget</h3>
+        <p>Copy this code and paste it on your website:</p>
+        <textarea cols="130" rows="6">@model.generatedTextOnlyWidget</textarea>
+        <br>
+        <p>This is what the text widget looks like:</p>
+        @html.raw(model.generatedTextOnlyWidget)
+        <hr/>
+      }
     }
 
     @if (!model.success) {

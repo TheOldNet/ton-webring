@@ -1,4 +1,4 @@
-import { WebsiteAttributes } from "./types";
+import { WebsiteAttributes, WebsiteRequestAttributes } from "./types";
 import { bannerPublicUrl, getHost } from "./helpers";
 
 /** Shared embed id for non-members. Not a DB row — routes treat it specially. */
@@ -19,6 +19,33 @@ export function anonymousWidgetSite(): WebsiteAttributes {
     description: "",
     isVintage: false,
   };
+}
+
+/** Pending submission → shape expected by generateBannerWidget / resolveWidgetOwner. */
+export function websiteFromRequest(
+  request: WebsiteRequestAttributes
+): WebsiteAttributes {
+  return {
+    id: request.id,
+    name: request.name,
+    email: request.email,
+    url: request.url,
+    description: request.description,
+    isVintage: !!request.isVintage,
+    banner: undefined,
+  };
+}
+
+/**
+ * Banner image for a pending request preview: their submitted custom URL, or
+ * on-the-fly generation (same as admin `/request-banner/:id`).
+ */
+export function pendingRequestBannerSrc(
+  request: Pick<WebsiteRequestAttributes, "id" | "banner">
+): string {
+  const raw = String(request.banner || "").trim();
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `${getHost()}/request-banner/${request.id}`;
 }
 
 function memberNavHtml(websiteId: string, withNavClass: boolean): string {
@@ -48,9 +75,14 @@ export function generateBannerWidget(website: WebsiteAttributes) {
 }
 
 /** Admin/preview only — shows this member's own banner so the /widget page isn't confusing. */
-export function generateBannerWidgetPreview(website: WebsiteAttributes) {
+export function generateBannerWidgetPreview(
+  website: WebsiteAttributes,
+  options?: { ownBannerSrc?: string }
+) {
   const host = getHost();
+  const override = String(options?.ownBannerSrc || "").trim();
   const bannerSrc =
+    override ||
     bannerPublicUrl(website.banner, website.updatedAt) ||
     `${host}/widget/${website.id}/image`;
   return `

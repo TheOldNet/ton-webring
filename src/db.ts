@@ -371,9 +371,10 @@ export async function getPreviousWebsite(
 
 export async function registerWebsiteRequest(
   data: Omit<WebsiteRequestAttributes, "id">
-) {
+): Promise<string> {
   const id = md5(data.url);
   await Requests.create({ id, ...data });
+  return id;
 }
 
 export async function checkIfWebsiteExists(url: string) {

@@ -25,6 +25,12 @@
     @if (model.generatedBannerWidget) {
       <hr/>
       <h2>TheOldNet Webring Widgets for @model.website.name</h2>
+      @if (model.pendingApproval === true) {
+        <p>
+          <b>This site is still pending review.</b> You can embed the widget
+          now; you'll be emailed when you're officially added to the webring.
+        </p>
+      }
       <h3>Banner Widget</h3>
       <p>Copy this code and paste it on your website</p>
       <textarea cols="130" rows="10">@model.generatedBannerWidget</textarea>
