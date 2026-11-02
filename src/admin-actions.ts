@@ -118,7 +118,9 @@ export async function updateWebsiteEntry(
     }
   } else if (input.bannerAction === "regenerate") {
     try {
-      const buffer = await generateBanner({
+      // Only overwrite when a live favicon exists (new template).
+      // If the favicon is gone, keep the member's current banner file.
+      const generated = await generateBanner({
         id,
         name,
         url,
@@ -126,10 +128,12 @@ export async function updateWebsiteEntry(
         description,
         isVintage: input.isVintage,
       });
-      const filename = id + ".gif";
-      const savePath = path.join(__dirname, "../assets/banners", filename);
-      await saveImage(buffer, savePath);
-      banner = filename;
+      if (generated.hasFavicon) {
+        const filename = id + ".gif";
+        const savePath = path.join(__dirname, "../assets/banners", filename);
+        await saveImage(generated.buffer, savePath);
+        banner = filename;
+      }
     } catch (e) {
       errors.push(
         `Could not regenerate banner: ${(e as Error).message || "unknown error"}`

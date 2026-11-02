@@ -146,7 +146,8 @@ export async function downloadBanner(request: WebsiteRequestAttributes) {
   const filename = request.id + ".gif";
   let buffer: Buffer;
   if (!request.banner) {
-    buffer = await generateBanner(request);
+    // New submission: favicon → new template; none → old stock template.
+    buffer = (await generateBanner(request)).buffer;
   } else {
     try {
       buffer = await downloadFile(request.banner);
@@ -155,7 +156,7 @@ export async function downloadBanner(request: WebsiteRequestAttributes) {
         `Banner download failed for ${request.id} (${request.banner}), generating fallback:`,
         (e as Error).message || e
       );
-      buffer = await generateBanner(request);
+      buffer = (await generateBanner(request)).buffer;
     }
   }
   const savePath = path.join(__dirname, "../assets/banners", filename);

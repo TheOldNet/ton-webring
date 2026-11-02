@@ -344,7 +344,7 @@ app.get("/request-banner/:website", async (req, res) => {
 
   const bn = await generateBanner(current);
   res.type("gif");
-  res.send(bn);
+  res.send(bn.buffer);
 });
 
 /**
