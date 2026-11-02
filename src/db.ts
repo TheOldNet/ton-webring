@@ -509,6 +509,20 @@ export async function getAnalyticsTypeCounts(): Promise<
   }));
 }
 
+const OUTBOUND_CLICK_TYPES = [
+  "banner_click",
+  "nav_previous",
+  "nav_next",
+  "nav_random",
+] as const;
+
+const ALL_CLICK_TYPES = [
+  ...OUTBOUND_CLICK_TYPES,
+  "widget_nav_previous",
+  "widget_nav_next",
+  "widget_nav_random",
+] as const;
+
 /** Top destination member ids from click/nav events. */
 export async function getTopDestinations(
   limit: number = 20
@@ -520,17 +534,7 @@ export async function getTopDestinations(
     ],
     where: {
       toWebsiteId: { [Op.ne]: null },
-      type: {
-        [Op.in]: [
-          "banner_click",
-          "nav_previous",
-          "nav_next",
-          "nav_random",
-          "widget_nav_previous",
-          "widget_nav_next",
-          "widget_nav_random",
-        ],
-      },
+      type: { [Op.in]: [...ALL_CLICK_TYPES] },
     },
     group: ["toWebsiteId"],
     order: [[Sequelize.literal("count"), "DESC"]],
@@ -539,6 +543,32 @@ export async function getTopDestinations(
   });
   return (rows as any[]).map((r) => ({
     toWebsiteId: String(r.toWebsiteId),
+    count: Number(r.count) || 0,
+  }));
+}
+
+/**
+ * Members whose embeds drive the most outbound traffic (banner / nav leave).
+ * Does not count modern in-place widget swaps.
+ */
+export async function getTopEmbedders(
+  limit: number = 20
+): Promise<{ fromWebsiteId: string; count: number }[]> {
+  const rows = await AnalyticsEvents.findAll({
+    attributes: [
+      "fromWebsiteId",
+      [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
+    ],
+    where: {
+      type: { [Op.in]: [...OUTBOUND_CLICK_TYPES] },
+    },
+    group: ["fromWebsiteId"],
+    order: [[Sequelize.literal("count"), "DESC"]],
+    limit: Math.max(1, Math.min(100, limit | 0)),
+    raw: true,
+  });
+  return (rows as any[]).map((r) => ({
+    fromWebsiteId: String(r.fromWebsiteId),
     count: Number(r.count) || 0,
   }));
 }

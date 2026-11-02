@@ -45,6 +45,7 @@ import {
 } from "./helpers";
 import { isOldBrowser } from "./old-browser";
 import {
+  ANONYMOUS_WIDGET_ID,
   anonymousWidgetSite,
   generateAnonymousBannerWidget,
   generateAnonymousBannerWidgetPreview,
@@ -670,16 +671,19 @@ app.get("/admin", authorization, async (_, res) => {
 });
 
 app.get("/admin/analytics", authorization, async (_, res) => {
-  const [typeCounts, topDestinations, recent] = await Promise.all([
-    db.getAnalyticsTypeCounts(),
-    db.getTopDestinations(25),
-    db.getRecentAnalyticsEvents(150),
-  ]);
+  const [typeCounts, topDestinations, topEmbedders, recent] =
+    await Promise.all([
+      db.getAnalyticsTypeCounts(),
+      db.getTopDestinations(25),
+      db.getTopEmbedders(25),
+      db.getRecentAnalyticsEvents(150),
+    ]);
   const siteNameById: Record<string, string> = {};
   const all = await db.getAllWebsites();
   for (const s of all) {
     siteNameById[s.id] = s.name;
   }
+  siteNameById[ANONYMOUS_WIDGET_ID] = "Anonymous share widget";
   const recentRows = recent.map((e) => ({
     ...e,
     when: formatAdminDateTime(e.createdAt),
@@ -693,9 +697,14 @@ app.get("/admin/analytics", authorization, async (_, res) => {
     ...d,
     name: siteNameById[d.toWebsiteId] || d.toWebsiteId,
   }));
+  const embedderRows = topEmbedders.map((d) => ({
+    ...d,
+    name: siteNameById[d.fromWebsiteId] || d.fromWebsiteId,
+  }));
   return res.render("analytics", {
     typeCounts,
     destRows,
+    embedderRows,
     recentRows,
   });
 });

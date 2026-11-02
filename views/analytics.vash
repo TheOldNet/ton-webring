@@ -34,6 +34,35 @@
     </table>
     </div>
 
+    <h2>Top embedders</h2>
+    <p class="admin-analytics-note">
+      Members whose embed drives the most outbound clicks (banner click or Previous/Next/Random leave).
+      In-place modern nav swaps are not counted here.
+    </p>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Embed owner</th>
+          <th>ID</th>
+          <th>Outbound clicks</th>
+        </tr>
+      </thead>
+      <tbody>
+      @if (!model.embedderRows || model.embedderRows.length === 0) {
+        <tr><td colspan="3">No outbound clicks yet.</td></tr>
+      }
+      @model.embedderRows.forEach(function (row) {
+        <tr>
+          <td>@row.name</td>
+          <td class="admin-mono">@row.fromWebsiteId</td>
+          <td>@row.count</td>
+        </tr>
+      })
+      </tbody>
+    </table>
+    </div>
+
     <h2>Top destinations</h2>
     <div class="admin-table-wrap">
     <table class="admin-table">
