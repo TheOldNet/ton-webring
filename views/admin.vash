@@ -184,13 +184,21 @@
     <script>
       (function () {
         var KEY = 'tonWebringAdminScroll';
-        function save() {
+        var PENDING = 'tonWebringAdminScrollPending';
+        var userMoved = false;
+
+        function saveForReturn() {
           try {
             sessionStorage.setItem(KEY, String(window.scrollY || window.pageYOffset || 0));
+            sessionStorage.setItem(PENDING, '1');
           } catch (e) {}
         }
-        function restore() {
+
+        function restoreOnce() {
           try {
+            if (sessionStorage.getItem(PENDING) !== '1') return;
+            sessionStorage.removeItem(PENDING);
+            if (userMoved) return;
             var raw = sessionStorage.getItem(KEY);
             if (raw == null || raw === '') return;
             var y = parseInt(raw, 10);
@@ -198,28 +206,33 @@
             window.scrollTo(0, y);
           } catch (e) {}
         }
-        window.addEventListener('pagehide', save);
-        window.addEventListener('beforeunload', save);
+
+        // Only persist when leaving the list — not while idly browsing it.
+        window.addEventListener('pagehide', saveForReturn);
         document.addEventListener('click', function (ev) {
           var t = ev.target;
-          if (!t) return;
-          var a = t.closest ? t.closest('a[href]') : null;
-          if (a) save();
+          if (!t || !t.closest) return;
+          if (t.closest('a[href]')) saveForReturn();
         });
-        document.addEventListener('submit', save);
-        // Restore after layout; again after images so row heights settle.
-        function scheduleRestore() {
-          requestAnimationFrame(function () {
-            restore();
-            requestAnimationFrame(restore);
-          });
-        }
+        document.addEventListener('submit', saveForReturn);
+
+        window.addEventListener(
+          'scroll',
+          function () {
+            userMoved = true;
+          },
+          { passive: true }
+        );
+
+        // Restore at most once, early. Do NOT re-run on window load — banner
+        // images finishing would yank the viewport while you are scrolling.
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', scheduleRestore);
+          document.addEventListener('DOMContentLoaded', function () {
+            requestAnimationFrame(restoreOnce);
+          });
         } else {
-          scheduleRestore();
+          requestAnimationFrame(restoreOnce);
         }
-        window.addEventListener('load', restore);
       })();
     </script>
     </div>
