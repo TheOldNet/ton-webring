@@ -16,8 +16,10 @@ import {
   toggleRetro,
   updateWebsiteEntry,
 } from "./admin-actions";
+import { recordClick, recordEmbedImageLoad } from "./analytics";
 import {
   formatAdminDate,
+  formatAdminDateTime,
   loadApprovalEmailTemplate,
   widgetSetupUrl,
 } from "./approval-email";
@@ -155,48 +157,113 @@ async function resolveRingCursor(
  */
 
 app.get("/member/:website/next/navigate", async (req, res) => {
-  const cursor = await resolveRingCursor(req.params.website, req.isOldBrowser);
+  const fromId = req.params.website;
+  const cursor = await resolveRingCursor(fromId, req.isOldBrowser);
   const result = await db.getNextWebsite(cursor, req.isOldBrowser);
-  res.redirect(
-    normalizeExternalUrl(result.url, { preferHttp: result.isVintage })
-  );
+  const toUrl = normalizeExternalUrl(result.url, {
+    preferHttp: result.isVintage,
+  });
+  recordClick({
+    type: "nav_next",
+    fromWebsiteId: fromId,
+    toWebsiteId: result.id,
+    toUrl,
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
+  res.redirect(toUrl);
 });
 
 app.get("/member/:website/previous/navigate", async (req, res) => {
-  const cursor = await resolveRingCursor(req.params.website, req.isOldBrowser);
+  const fromId = req.params.website;
+  const cursor = await resolveRingCursor(fromId, req.isOldBrowser);
   const result = await db.getPreviousWebsite(cursor, req.isOldBrowser);
-  res.redirect(
-    normalizeExternalUrl(result.url, { preferHttp: result.isVintage })
-  );
+  const toUrl = normalizeExternalUrl(result.url, {
+    preferHttp: result.isVintage,
+  });
+  recordClick({
+    type: "nav_previous",
+    fromWebsiteId: fromId,
+    toWebsiteId: result.id,
+    toUrl,
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
+  res.redirect(toUrl);
 });
 
 app.get("/member/:website/random/navigate", async (req, res) => {
-  const website = req.params.website;
-  const exclude = isAnonymousWidgetId(website) ? "" : website;
+  const fromId = req.params.website;
+  const exclude = isAnonymousWidgetId(fromId) ? "" : fromId;
   const random = await db.getRandomWebsite(req.isOldBrowser, exclude);
+  const toUrl = normalizeExternalUrl(random.url, {
+    preferHttp: random.isVintage,
+  });
+  recordClick({
+    type: "nav_random",
+    fromWebsiteId: fromId,
+    toWebsiteId: random.id,
+    toUrl,
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
   // Same as previous/next: leave for the member site (no-JS / vintage fallback).
-  res.redirect(
-    normalizeExternalUrl(random.url, { preferHttp: random.isVintage })
-  );
+  res.redirect(toUrl);
 });
 
 /**
  * Member JSON endpoints
  */
 
+function apiRingCursor(
+  embedId: string,
+  queryCursor: unknown,
+  isVintage: boolean
+): Promise<string> {
+  const raw = queryCursor != null ? String(queryCursor).trim() : "";
+  if (raw && !isAnonymousWidgetId(raw)) {
+    return Promise.resolve(raw);
+  }
+  return resolveRingCursor(embedId, isVintage);
+}
+
 app.get("/api/member/:website/next", async (req, res) => {
   const embedId = req.params.website;
-  const cursor = await resolveRingCursor(embedId, req.isOldBrowser);
+  const cursor = await apiRingCursor(
+    embedId,
+    req.query.cursor,
+    req.isOldBrowser
+  );
   const result = await db.getNextWebsite(cursor, req.isOldBrowser);
   setCachedWidgetTarget(embedId, result.id, req.isOldBrowser);
+  recordClick({
+    type: "widget_nav_next",
+    fromWebsiteId: embedId,
+    toWebsiteId: result.id,
+    toUrl: normalizeExternalUrl(result.url, { preferHttp: result.isVintage }),
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
   res.send(withAbsoluteUrl(result));
 });
 
 app.get("/api/member/:website/previous", async (req, res) => {
   const embedId = req.params.website;
-  const cursor = await resolveRingCursor(embedId, req.isOldBrowser);
+  const cursor = await apiRingCursor(
+    embedId,
+    req.query.cursor,
+    req.isOldBrowser
+  );
   const result = await db.getPreviousWebsite(cursor, req.isOldBrowser);
   setCachedWidgetTarget(embedId, result.id, req.isOldBrowser);
+  recordClick({
+    type: "widget_nav_previous",
+    fromWebsiteId: embedId,
+    toWebsiteId: result.id,
+    toUrl: normalizeExternalUrl(result.url, { preferHttp: result.isVintage }),
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
   res.send(withAbsoluteUrl(result));
 });
 
@@ -205,6 +272,14 @@ app.get("/api/member/:website/random", async (req, res) => {
   const exclude = isAnonymousWidgetId(embedId) ? "" : embedId;
   const random = await db.getRandomWebsite(req.isOldBrowser, exclude);
   setCachedWidgetTarget(embedId, random.id, req.isOldBrowser);
+  recordClick({
+    type: "widget_nav_random",
+    fromWebsiteId: embedId,
+    toWebsiteId: random.id,
+    toUrl: normalizeExternalUrl(random.url, { preferHttp: random.isVintage }),
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
   res.send(withAbsoluteUrl(random));
 });
 
@@ -284,9 +359,18 @@ app.get("/widget/:website/navigate", async (req, res) => {
   if (!website) {
     return res.status(404).send("Website not found");
   }
-  return res.redirect(
-    normalizeExternalUrl(website.url, { preferHttp: website.isVintage })
-  );
+  const toUrl = normalizeExternalUrl(website.url, {
+    preferHttp: website.isVintage,
+  });
+  recordClick({
+    type: "banner_click",
+    fromWebsiteId: current.id,
+    toWebsiteId: website.id,
+    toUrl,
+    referer: req.get("referer") || req.get("referrer"),
+    isOldBrowser: req.isOldBrowser,
+  });
+  return res.redirect(toUrl);
 });
 
 // This is very rough, we should improve how we send the image
@@ -298,6 +382,12 @@ app.get("/widget/:website/image", async (req, res) => {
   if (!current) {
     return res.sendStatus(404);
   }
+
+  // Presence signal: last time this member's image URL was loaded + embedding page.
+  recordEmbedImageLoad(
+    current.id,
+    req.get("referer") || req.get("referrer")
+  );
 
   // Modern: new random target every image load (every page view).
   // Vintage members: reuse pairing for ~2 hours so banner + click stay matched without JS.
@@ -573,8 +663,41 @@ app.get("/admin", authorization, async (_, res) => {
     bannerSrc: bannerPublicPath(s.banner, s.updatedAt),
     approvedAt: formatAdminDate(s.createdAt),
     approvalEmailed: !!s.approvalEmailed,
+    lastEmbedSeenAt: formatAdminDateTime(s.lastEmbedSeenAt),
+    lastEmbedReferer: s.lastEmbedReferer || "",
   }));
   return res.render("admin", { requests, current });
+});
+
+app.get("/admin/analytics", authorization, async (_, res) => {
+  const [typeCounts, topDestinations, recent] = await Promise.all([
+    db.getAnalyticsTypeCounts(),
+    db.getTopDestinations(25),
+    db.getRecentAnalyticsEvents(150),
+  ]);
+  const siteNameById: Record<string, string> = {};
+  const all = await db.getAllWebsites();
+  for (const s of all) {
+    siteNameById[s.id] = s.name;
+  }
+  const recentRows = recent.map((e) => ({
+    ...e,
+    when: formatAdminDateTime(e.createdAt),
+    fromName: siteNameById[e.fromWebsiteId] || e.fromWebsiteId,
+    toName: e.toWebsiteId
+      ? siteNameById[e.toWebsiteId] || e.toWebsiteId
+      : "—",
+    referer: e.referer || "",
+  }));
+  const destRows = topDestinations.map((d) => ({
+    ...d,
+    name: siteNameById[d.toWebsiteId] || d.toWebsiteId,
+  }));
+  return res.render("analytics", {
+    typeCounts,
+    destRows,
+    recentRows,
+  });
 });
 
 app.get("/admin/edit/:id", authorization, async (req, res) => {

@@ -1,0 +1,114 @@
+@html.extend('admin-layout', function () {
+  @html.append('content', function () {
+    <div class="admin-shell admin-shell--wide">
+    <h1>Click analytics</h1>
+    <p class="admin-nav"><a href="/admin">← Back to admin</a></p>
+
+    <p class="admin-analytics-note">
+      Banner clicks go through <code>/widget/…/navigate</code>.
+      <code>nav_*</code> = full-page leave (no-JS / vintage).
+      <code>widget_nav_*</code> = modern in-place banner swap.
+      Embed presence is on the main admin list (Last Embed Seen / Embed Page).
+    </p>
+
+    <h2>Totals by type</h2>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Count</th>
+        </tr>
+      </thead>
+      <tbody>
+      @if (!model.typeCounts || model.typeCounts.length === 0) {
+        <tr><td colspan="2">No events yet.</td></tr>
+      }
+      @model.typeCounts.forEach(function (row) {
+        <tr>
+          <td class="admin-mono">@row.type</td>
+          <td>@row.count</td>
+        </tr>
+      })
+      </tbody>
+    </table>
+    </div>
+
+    <h2>Top destinations</h2>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Site</th>
+          <th>ID</th>
+          <th>Clicks / views</th>
+        </tr>
+      </thead>
+      <tbody>
+      @if (!model.destRows || model.destRows.length === 0) {
+        <tr><td colspan="3">No destinations yet.</td></tr>
+      }
+      @model.destRows.forEach(function (row) {
+        <tr>
+          <td>@row.name</td>
+          <td class="admin-mono">@row.toWebsiteId</td>
+          <td>@row.count</td>
+        </tr>
+      })
+      </tbody>
+    </table>
+    </div>
+
+    <h2>Recent events</h2>
+    <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>When (UTC)</th>
+          <th>Type</th>
+          <th>From embed</th>
+          <th>To site</th>
+          <th>To URL</th>
+          <th>Referer</th>
+          <th>Old UA?</th>
+        </tr>
+      </thead>
+      <tbody>
+      @if (!model.recentRows || model.recentRows.length === 0) {
+        <tr><td colspan="7">No events yet.</td></tr>
+      }
+      @model.recentRows.forEach(function (row) {
+        <tr>
+          <td class="admin-mono">@row.when</td>
+          <td class="admin-mono">@row.type</td>
+          <td>@row.fromName</td>
+          <td>@row.toName</td>
+          <td class="admin-col-embed-page">
+            @if (row.toUrl) {
+              <a href="@row.toUrl" target="_blank" rel="noopener noreferrer">@row.toUrl</a>
+            } else {
+              <span>—</span>
+            }
+          </td>
+          <td class="admin-col-embed-page">
+            @if (row.referer) {
+              <a href="@row.referer" target="_blank" rel="noopener noreferrer" title="@row.referer">@row.referer</a>
+            } else {
+              <span>—</span>
+            }
+          </td>
+          <td>
+            @if (row.isOldBrowser === true) {
+              <span>YES</span>
+            } else {
+              <span>NO</span>
+            }
+          </td>
+        </tr>
+      })
+      </tbody>
+    </table>
+    </div>
+    </div>
+  })
+})

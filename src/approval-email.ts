@@ -119,3 +119,11 @@ export function formatAdminDate(value: unknown): string {
   if (Number.isNaN(d.getTime())) return "—";
   return d.toISOString().slice(0, 10);
 }
+
+/** UTC datetime for admin (e.g. last embed seen). */
+export function formatAdminDateTime(value: unknown): string {
+  if (!value) return "—";
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+}

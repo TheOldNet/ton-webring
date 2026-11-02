@@ -31,11 +31,12 @@
     if (website.id) {
       cursorId = website.id;
     }
-    if (website.url) {
-      link.href = website.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-    }
+    // Keep /widget/{id}/navigate so banner clicks hit our server (analytics +
+    // cache pairing). Do not point straight at the destination URL.
+    link.href =
+      base + "/widget/" + encodeURIComponent(memberId) + "/navigate";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
     if (website.name) {
       img.alt = website.name;
       link.title = website.name;
@@ -48,14 +49,17 @@
   }
 
   function fetchRelative(action) {
-    // Walk the ring from the currently displayed site so prev/next keep moving.
-    return fetch(
+    // Path uses embed owner (analytics + cache key). ?cursor= walks from the
+    // site currently shown so prev/next keep moving.
+    var url =
       base +
-        "/api/member/" +
-        encodeURIComponent(cursorId) +
-        "/" +
-        action
-    ).then(function (response) {
+      "/api/member/" +
+      encodeURIComponent(memberId) +
+      "/" +
+      action +
+      "?cursor=" +
+      encodeURIComponent(cursorId);
+    return fetch(url).then(function (response) {
       if (!response.ok) throw new Error("widget " + action + " failed");
       return response.json();
     });

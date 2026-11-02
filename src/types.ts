@@ -17,10 +17,46 @@ export type WebsiteAttributes = {
   hasWidget?: boolean;
   /** Admin marked that the approval email was sent. */
   approvalEmailed?: boolean;
+  /** Last time `/widget/{id}/image` was requested for this member. */
+  lastEmbedSeenAt?: Date | string | null;
+  /** Referer (embedding page) from the most recent image load. */
+  lastEmbedReferer?: string | null;
   order?: number;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 };
+
+/** Click / usage events for webring embeds (banner + nav). */
+export type AnalyticsEventType =
+  | "banner_click"
+  | "nav_previous"
+  | "nav_next"
+  | "nav_random"
+  | "widget_nav_previous"
+  | "widget_nav_next"
+  | "widget_nav_random";
+
+export type AnalyticsEventAttributes = {
+  id?: number;
+  type: AnalyticsEventType;
+  /** Embed owner id (member or "anonymous"). */
+  fromWebsiteId: string;
+  /** Destination member id when known. */
+  toWebsiteId?: string | null;
+  /** Final redirect URL when known. */
+  toUrl?: string | null;
+  /** HTTP Referer of the click/request. */
+  referer?: string | null;
+  isOldBrowser?: boolean;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type AnalyticsEventCreator = AnalyticsEventAttributes;
+export type AnalyticsEventModel = Model<
+  AnalyticsEventAttributes,
+  AnalyticsEventCreator
+>;
 
 export type WebsiteCreator = WebsiteAttributes;
 export type WebsiteModel = Model<WebsiteAttributes, WebsiteCreator>;

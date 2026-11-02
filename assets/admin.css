@@ -60,6 +60,28 @@ body.admin-modern {
   font-size: 0.95rem;
 }
 
+.admin-analytics-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 52rem;
+  margin: 0 0 1.25rem;
+}
+
+.admin-col-embed-seen {
+  white-space: nowrap;
+}
+
+.admin-col-embed-page {
+  max-width: 18rem;
+}
+
+.admin-col-embed-page a {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Same table layout as before — just themed, no fixed column widths */
 .admin-table-wrap {
   width: 100%;

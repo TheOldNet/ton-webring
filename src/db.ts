@@ -2,6 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { DataTypes, Op, Sequelize, Transaction, WhereOptions } from "sequelize";
 import {
+  AnalyticsEventAttributes,
+  AnalyticsEventCreator,
+  AnalyticsEventModel,
   WebsiteAttributes,
   WebsiteCreator,
   WebsiteModel,
@@ -73,6 +76,14 @@ export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
       allowNull: false,
       defaultValue: false,
     },
+    lastEmbedSeenAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    lastEmbedReferer: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     order: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -83,6 +94,42 @@ export const Websites = sequelize.define<WebsiteModel, WebsiteCreator>(
     indexes: [{ unique: true, fields: ["order"] }],
   }
 );
+
+export const AnalyticsEvents = sequelize.define<
+  AnalyticsEventModel,
+  AnalyticsEventCreator
+>("analytics_events", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  fromWebsiteId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  toWebsiteId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  toUrl: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  referer: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  isOldBrowser: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+});
 
 export const Requests = sequelize.define<
   WebsiteRequestModel,
@@ -141,6 +188,20 @@ export async function connect() {
     try {
       await sequelize.query(
         "ALTER TABLE websites ADD COLUMN bannerIsCustom BOOLEAN NOT NULL DEFAULT 1"
+      );
+    } catch (_) {
+      /* column already exists */
+    }
+    try {
+      await sequelize.query(
+        "ALTER TABLE websites ADD COLUMN lastEmbedSeenAt DATETIME"
+      );
+    } catch (_) {
+      /* column already exists */
+    }
+    try {
+      await sequelize.query(
+        "ALTER TABLE websites ADD COLUMN lastEmbedReferer TEXT"
       );
     } catch (_) {
       /* column already exists */
@@ -397,4 +458,87 @@ export async function websiteUrlTakenByOther(
     where: { url, id: { [Op.ne]: exceptId } },
   });
   return count > 0;
+}
+
+/** Record that a member's widget image was loaded (presence signal). */
+export async function touchEmbedSeen(
+  id: string,
+  referer: string | null
+): Promise<void> {
+  await Websites.update(
+    {
+      lastEmbedSeenAt: new Date(),
+      lastEmbedReferer: referer,
+      hasWidget: true,
+    },
+    { where: { id } }
+  );
+}
+
+export async function createAnalyticsEvent(
+  event: AnalyticsEventAttributes
+): Promise<void> {
+  await AnalyticsEvents.create(event);
+}
+
+export async function getRecentAnalyticsEvents(
+  limit: number = 100
+): Promise<AnalyticsEventAttributes[]> {
+  const rows = await AnalyticsEvents.findAll({
+    order: [["createdAt", "DESC"]],
+    limit: Math.max(1, Math.min(500, limit | 0)),
+  });
+  return rows.map((r) => r.toJSON());
+}
+
+/** Simple counts by event type (all time). */
+export async function getAnalyticsTypeCounts(): Promise<
+  { type: string; count: number }[]
+> {
+  const rows = await AnalyticsEvents.findAll({
+    attributes: [
+      "type",
+      [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
+    ],
+    group: ["type"],
+    raw: true,
+  });
+  return (rows as any[]).map((r) => ({
+    type: String(r.type),
+    count: Number(r.count) || 0,
+  }));
+}
+
+/** Top destination member ids from click/nav events. */
+export async function getTopDestinations(
+  limit: number = 20
+): Promise<{ toWebsiteId: string; count: number }[]> {
+  const rows = await AnalyticsEvents.findAll({
+    attributes: [
+      "toWebsiteId",
+      [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
+    ],
+    where: {
+      toWebsiteId: { [Op.ne]: null },
+      type: {
+        [Op.in]: [
+          "banner_click",
+          "nav_previous",
+          "nav_next",
+          "nav_random",
+          "widget_nav_previous",
+          "widget_nav_next",
+          "widget_nav_random",
+        ],
+      },
+    },
+    group: ["toWebsiteId"],
+    order: [[Sequelize.literal("count"), "DESC"]],
+    limit: Math.max(1, Math.min(100, limit | 0)),
+    raw: true,
+  });
+  return (rows as any[]).map((r) => ({
+    toWebsiteId: String(r.toWebsiteId),
+    count: Number(r.count) || 0,
+  }));
 }
