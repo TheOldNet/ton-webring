@@ -40,7 +40,8 @@ const URL_LINE_H = 9;
  */
 const TEXT_LUMINANCE_THRESHOLD = 0.55;
 
-const BG_GLOBE = path.join(__dirname, "../assets/site-banner-background.png");
+/** No-favicon branding plate (globe mark on the left). */
+const BG_NOFAV = path.join(__dirname, "../assets/site-banner-nofav.png");
 /** Favicon-template branding plate (chosen A/B winner). */
 const BG_NOBG = path.join(__dirname, "../assets/site-banner-nobg3.png");
 export const BG_NOBG3 = BG_NOBG;
@@ -550,7 +551,7 @@ export type GenerateBannerOptions = {
 };
 
 /**
- * New submissions: favicon → transparent plate + sampled bg; no favicon → classic globe.
+ * New submissions: favicon → transparent plate + sampled bg; no favicon → nofav plate.
  * Callers that regenerate existing members should skip saving when hasFavicon is false.
  */
 export async function generateBanner(
@@ -578,9 +579,9 @@ export async function generateBanner(
   context.fillStyle = `rgb(${bgColor.r},${bgColor.g},${bgColor.b})`;
   context.fillRect(0, 0, width, height);
 
-  // Favicon sites: transparent branding plate over sampled color; else classic globe.
+  // Favicon sites: transparent branding plate over sampled color; else nofav plate.
   const nobgPlate = options?.nobgBackgroundPath || BG_NOBG;
-  const img = await loadImage(favStrip ? nobgPlate : BG_GLOBE);
+  const img = await loadImage(favStrip ? nobgPlate : BG_NOFAV);
   context.drawImage(img, 0, 0, img.width, img.height);
 
   const textMaxWidth = width - TEXT_RIGHT_RESERVE - textLeft;
