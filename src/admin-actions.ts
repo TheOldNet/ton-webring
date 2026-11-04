@@ -101,6 +101,20 @@ export async function updateWebsiteEntry(
 
   let banner = existing.banner;
   let bannerIsCustom = !!existing.bannerIsCustom;
+
+  const textChanged =
+    name !== String(existing.name || "").trim() ||
+    url !== String(existing.url || "").trim() ||
+    description !== String(existing.description || "").trim();
+
+  // Stock (tool-generated) banners paint name/url/description into the GIF.
+  // If those change — or admin asks to regenerate — always rewrite the file,
+  // including the nofav plate when the live site has no favicon. Skipping that
+  // left stale URLs on disk after edits (e.g. member 30ed6d… yourpalaxl).
+  const shouldRegenerateStock =
+    input.bannerAction === "regenerate" ||
+    (input.bannerAction === "keep" && !bannerIsCustom && textChanged);
+
   if (input.bannerAction === "url") {
     const bannerUrl = String(input.bannerUrl || "").trim();
     if (!bannerUrl) {
@@ -119,10 +133,8 @@ export async function updateWebsiteEntry(
         );
       }
     }
-  } else if (input.bannerAction === "regenerate") {
+  } else if (shouldRegenerateStock) {
     try {
-      // Only overwrite when a live favicon exists (new template).
-      // If the favicon is gone, keep the member's current banner file.
       const generated = await generateBanner({
         id,
         name,
@@ -131,13 +143,11 @@ export async function updateWebsiteEntry(
         description,
         isVintage: input.isVintage,
       });
-      if (generated.hasFavicon) {
-        const filename = id + ".gif";
-        const savePath = path.join(__dirname, "../assets/banners", filename);
-        await saveImage(generated.buffer, savePath);
-        banner = filename;
-        bannerIsCustom = false;
-      }
+      const filename = id + ".gif";
+      const savePath = path.join(__dirname, "../assets/banners", filename);
+      await saveImage(generated.buffer, savePath);
+      banner = filename;
+      bannerIsCustom = false;
     } catch (e) {
       errors.push(
         `Could not regenerate banner: ${(e as Error).message || "unknown error"}`

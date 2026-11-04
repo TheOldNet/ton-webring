@@ -552,7 +552,8 @@ export type GenerateBannerOptions = {
 
 /**
  * New submissions: favicon → transparent plate + sampled bg; no favicon → nofav plate.
- * Callers that regenerate existing members should skip saving when hasFavicon is false.
+ * Admin regenerate always saves the returned buffer (including nofav) so painted
+ * name/url/description stay in sync when the live site has no favicon.
  */
 export async function generateBanner(
   website: WebsiteRequestAttributes,
