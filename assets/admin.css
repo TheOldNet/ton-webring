@@ -81,10 +81,20 @@ body.admin-modern {
   white-space: nowrap;
 }
 
+/* Hug the text. Otherwise a shorter table stretches these columns to fill the page. */
+.admin-col-id,
+.admin-col-submitted,
+.admin-col-email,
+.admin-col-retro,
+.admin-col-source,
+.admin-col-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
 /* Columns keep their content width. The page scrolls instead of squeezing them. */
 .admin-table-wrap {
   width: max-content;
-  min-width: 100%;
   overflow: visible;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -93,7 +103,6 @@ body.admin-modern {
 
 .admin-table {
   width: max-content;
-  min-width: 100%;
   border-collapse: collapse;
   table-layout: auto;
 }
@@ -134,6 +143,7 @@ body.admin-modern {
   overflow: hidden;
   overflow-wrap: anywhere;
   white-space: normal;
+  width: 16rem;
   max-width: 16rem;
 }
 
