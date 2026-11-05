@@ -55,9 +55,9 @@
         <tr class="admin-row">
           <td>@request.submittedAt</td>
           <td class="admin-mono">@request.id</td>
-          <td><a href="@request.url" target="_blank">@request.url</a></td>
-          <td>@request.name</td>
-          <td>@request.description</td>
+          <td class="admin-col-url"><a class="admin-clamp" href="@request.url" target="_blank" title="@request.url">@request.url</a></td>
+          <td class="admin-col-title"><span class="admin-clamp" title="@request.name">@request.name</span></td>
+          <td class="admin-col-description"><span class="admin-clamp" title="@request.description">@request.description</span></td>
           <td><a href="mailto:@request.email">@request.email</a></td>
           <td class="admin-table-banner admin-col-banner">
             @if (request.banner) {
@@ -127,9 +127,9 @@
         <tr class="admin-row">
           <td>@site.approvedAt</td>
           <td class="admin-mono">@site.id</td>
-          <td><a href="@site.url" target="_blank">@site.url</a></td>
-          <td>@site.name</td>
-          <td>@site.description</td>
+          <td class="admin-col-url"><a class="admin-clamp" href="@site.url" target="_blank" title="@site.url">@site.url</a></td>
+          <td class="admin-col-title"><span class="admin-clamp" title="@site.name">@site.name</span></td>
+          <td class="admin-col-description"><span class="admin-clamp" title="@site.description">@site.description</span></td>
           <td><a href="/mailto-form/@site.id">@site.email</a></td>
           <td>
             @if (site.approvalEmailed === true) {
